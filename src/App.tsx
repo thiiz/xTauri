@@ -1,27 +1,27 @@
-import { useEffect, useRef, startTransition } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import Hls from "hls.js";
-import NavigationSidebar from "./components/NavigationSidebar";
-import MainContent from "./components/MainContent";
-import VideoPlayer from "./components/VideoPlayer";
+import { startTransition, useEffect, useRef } from "react";
 import ChannelDetails from "./components/ChannelDetails";
-import Settings from "./components/Settings";
 import Help from "./components/Help";
+import MainContent from "./components/MainContent";
+import NavigationSidebar from "./components/NavigationSidebar";
+import Settings from "./components/Settings";
 
-import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
+import "./App.css";
+import type { Channel } from "./components/ChannelList";
 import { useChannelSearch } from "./hooks/useChannelSearch";
+import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { useSavedFilters } from "./hooks/useSavedFilters";
 import {
+  GroupDisplayMode,
   useChannelStore,
-  useUIStore,
   useSearchStore,
   useSettingsStore,
-  GroupDisplayMode,
+  useUIStore,
   type SavedFilter,
 } from "./stores";
 import { asyncPlaylistStore } from "./stores/asyncPlaylistStore";
-import type { Channel } from "./components/ChannelList";
-import "./App.css";
+import VideoPlayerWrapper from "./components/VideoPlayerWrapper";
 
 function App() {
   // Zustand store hooks
@@ -526,7 +526,7 @@ function App() {
             <div
               className={`video-section ${!enablePreview ? "preview-disabled" : ""}`}
             >
-              {enablePreview && <VideoPlayer ref={videoRef} />}
+              {enablePreview && <VideoPlayerWrapper ref={videoRef} />}
 
               {selectedChannel && <ChannelDetails />}
             </div>

@@ -17,7 +17,7 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
   const [selectedSeries, setSelectedSeries] = useState<XtreamShowListing | null>(null);
   const [seriesDetails, setSeriesDetails] = useState<XtreamShow | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<XtreamSeason | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'details'>('grid');
   const gridRef = useRef<HTMLDivElement>(null);
@@ -32,11 +32,8 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
     fetchSeriesCategories,
     fetchSeries,
     fetchSeriesDetails,
-    filterSeries,
     searchSeries,
-    setSelectedCategory,
-    clearFilters,
-    clearSearch
+    setSelectedCategory
   } = useXtreamContentStore();
 
   const { activeProfile } = useProfileStore();
@@ -76,7 +73,7 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
 
     setSelectedCategoryId(categoryId);
     setSelectedCategory(categoryId);
-    clearSearch();
+    setSearchQuery("");
 
     if (categoryId) {
       await fetchSeries(activeProfile.id, categoryId);
@@ -94,7 +91,7 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
     if (query.trim()) {
       await searchSeries(activeProfile.id, query);
     } else {
-      clearSearch();
+      setSearchQuery("");
       if (selectedCategoryId) {
         await fetchSeries(activeProfile.id, selectedCategoryId);
       } else {
@@ -139,7 +136,7 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
   const formatRating = (rating: string | number): string => {
     if (!rating || rating === '0') return 'N/A';
     const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    return numRating.toFixed(1);
+    return numRating.toString();
   };
 
   // Format year for display
@@ -287,7 +284,7 @@ export default function SeriesBrowser({ onSeriesSelect, onEpisodePlay }: SeriesB
                         <span className="episode-duration">{episode.info.duration}</span>
                       )}
                       {episode.info.rating && (
-                        <span className="episode-rating">★ {episode.info.rating.toFixed(1)}</span>
+                        <span className="episode-rating">★ {episode.info.rating}</span>
                       )}
                     </div>
 

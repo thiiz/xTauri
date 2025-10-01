@@ -906,6 +906,109 @@ impl ProfileManager {
         
         Ok(credentials)
     }
+
+    /// Get playback history for a profile
+    pub async fn get_playback_history(&self, profile_id: &str) -> Result<serde_json::Value> {
+        let db = self.db.lock().unwrap();
+        
+        let mut stmt = db.prepare(
+            "SELECT id, content_type, content_id, content_data, watched_at, position, duration 
+             FROM xtream_history 
+             WHERE profile_id = ? 
+             ORDER BY watched_at DESC 
+             LIMIT 100"
+        )?;
+        
+        let history_iter = stmt.query_map([profile_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "profileId": profile_id,
+                "contentType": row.get::<_, String>(1)?,
+                "contentId": row.get::<_, String>(2)?,
+                "contentData": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(3)?).unwrap_or(serde_json::Value::Null),
+                "watchedAt": row.get::<_, String>(4)?,
+                "position": row.get::<_, Option<f64>>(5)?,
+                "duration": row.get::<_, Option<f64>>(6)?
+            }))
+        })?;
+        
+        let mut history = Vec::new();
+        for item in history_iter {
+            history.push(item?);
+        }
+        
+        Ok(serde_json::Value::Array(history))
+    }
+
+    /// Add content to playback history
+    pub async fn add_to_playback_history(
+        &self,
+        profile_id: &str,
+        content_type: &str,
+        content_id: &str,
+        content_data: &serde_json::Value,
+        position: Option<f64>,
+        duration: Option<f64>,
+    ) -> Result<()> {
+        let history_id = Uuid::new_v4().to_string();
+        let now = Utc::now().to_rfc3339();
+        let content_data_str = serde_json::to_string(content_data)
+            .map_err(|e| TolloError::internal(format!("Failed to serialize content data: {}", e)))?;
+        
+        let db = self.db.lock().unwrap();
+        // Insert or update existing history entry
+        db.execute(
+            "INSERT OR REPLACE INTO xtream_history 
+             (id, profile_id, content_type, content_id, content_data, watched_at, position, duration)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                history_id,
+                profile_id,
+                content_type,
+                content_id,
+                content_data_str,
+                now,
+                position,
+                duration
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// Update playback position for resume functionality
+    pub async fn update_playback_position(
+        &self,
+        profile_id: &str,
+        content_type: &str,
+        content_id: &str,
+        position: f64,
+        duration: Option<f64>,
+    ) -> Result<()> {
+        let rows_affected = {
+            let db = self.db.lock().unwrap();
+            db.execute(
+                "UPDATE xtream_history 
+                 SET position = ?1, duration = COALESCE(?2, duration), watched_at = ?3
+                 WHERE profile_id = ?4 AND content_type = ?5 AND content_id = ?6",
+                rusqlite::params![
+                    position,
+                    duration,
+                    Utc::now().to_rfc3339(),
+                    profile_id,
+                    content_type,
+                    content_id
+                ],
+            )?
+        };
+        
+        // If no existing entry was updated, create a new one
+        if rows_affected == 0 {
+            self.add_to_playback_history(profile_id, content_type, content_id, &serde_json::Value::Null, Some(position), duration).await?;
+        }
+        
+        Ok(())
+    }
 }
 
 #[cfg(test)]

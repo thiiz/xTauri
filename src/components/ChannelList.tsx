@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useChannelStore, useProfileStore, useUIStore, useXtreamContentStore } from "../stores";
-import CachedImage from "./CachedImage";
 import type { EnhancedEPGListing, XtreamChannel } from "../types/types";
+import CachedImage from "./CachedImage";
 
 export interface Channel {
   name: string;
@@ -41,17 +41,12 @@ export default function ChannelList({ channels, useXtreamData = false }: Channel
     isLoadingChannels,
     isLoadingChannelCategories,
     channelsError,
-    epgData,
     currentAndNextEPG,
     isLoadingEPG,
     fetchChannelCategories,
     fetchChannels,
     fetchCurrentAndNextEPG,
-    filterChannels,
-    searchChannels,
-    setSelectedCategory,
-    clearFilters,
-    clearSearch
+    setSelectedCategory
   } = useXtreamContentStore();
 
   const { activeProfile } = useProfileStore();

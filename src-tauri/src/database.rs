@@ -195,10 +195,23 @@ pub fn initialize_database() -> Result<Connection> {
             content_id TEXT NOT NULL,
             content_data BLOB NOT NULL,
             watched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            position REAL,
+            duration REAL,
             FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE
         )",
         [],
     )?;
+
+    // Add position and duration columns to existing xtream_history table if they don't exist
+    conn.execute(
+        "ALTER TABLE xtream_history ADD COLUMN position REAL",
+        [],
+    ).ok(); // Use ok() to ignore error if column already exists
+
+    conn.execute(
+        "ALTER TABLE xtream_history ADD COLUMN duration REAL",
+        [],
+    ).ok(); // Use ok() to ignore error if column already exists
 
     let list_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM channel_lists", [], |row| row.get(0))?;

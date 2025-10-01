@@ -142,7 +142,7 @@ export default function MovieGrid({ onMovieSelect, onMoviePlay }: MovieGridProps
   // Format rating for display
   const formatRating = (rating: number): string => {
     if (rating === 0) return 'N/A';
-    return rating.toFixed(1);
+    return rating.toString();
   };
 
   // Format year for display

@@ -246,6 +246,10 @@ pub fn run() {
             sort_xtream_series,
             search_xtream_series,
             validate_xtream_series_data,
+            // Playback history commands
+            get_xtream_playback_history,
+            add_to_xtream_playback_history,
+            update_xtream_playback_position,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

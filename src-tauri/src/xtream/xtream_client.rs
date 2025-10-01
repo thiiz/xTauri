@@ -1909,12 +1909,12 @@ impl XtreamClient {
         let url = match request.content_type {
             ContentType::Channel => {
                 format!(
-                    "{}/{}/{}/{}.{}",
+                    "{}/live/{}/{}/{}.{}",
                     self.base_url,
                     self.credentials.username,
                     self.credentials.password,
                     request.content_id,
-                    request.extension.as_deref().unwrap_or("ts")
+                    request.extension.as_deref().unwrap_or("m3u8")
                 )
             }
             ContentType::Movie => {

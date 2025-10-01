@@ -454,8 +454,25 @@ pub fn search_epg_programs(epg_data: Value, search_query: String) -> Result<Valu
 pub async fn generate_xtream_stream_url(
     state: State<'_, XtreamState>,
     profile_id: String,
-    request: StreamURLRequest,
+    content_type: String,
+    content_id: String,
+    extension: Option<String>,
 ) -> Result<String, String> {
+    use crate::xtream::ContentType;
+    
+    let content_type_enum = match content_type.as_str() {
+        "Channel" => ContentType::Channel,
+        "Movie" => ContentType::Movie,
+        "Series" => ContentType::Series,
+        _ => return Err(format!("Invalid content type: {}", content_type)),
+    };
+    
+    let request = StreamURLRequest {
+        content_type: content_type_enum,
+        content_id,
+        extension,
+    };
+    
     let client = create_authenticated_client(&state, &profile_id).await?;
     client.generate_stream_url(&request).map_err(|e| e.to_string())
 }
@@ -622,6 +639,54 @@ pub fn search_xtream_series(
 #[tauri::command]
 pub fn validate_xtream_series_data(series: Value) -> bool {
     XtreamClient::validate_series_data(&series)
+}
+
+/// Get playback history for a profile
+#[tauri::command]
+pub async fn get_xtream_playback_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<Value, String> {
+    state
+        .profile_manager
+        .get_playback_history(&profile_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Add content to playback history
+#[tauri::command]
+pub async fn add_to_xtream_playback_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    content_id: String,
+    content_data: Value,
+    position: Option<f64>,
+    duration: Option<f64>,
+) -> Result<(), String> {
+    state
+        .profile_manager
+        .add_to_playback_history(&profile_id, &content_type, &content_id, &content_data, position, duration)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Update playback position for resume functionality
+#[tauri::command]
+pub async fn update_xtream_playback_position(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    content_id: String,
+    position: f64,
+    duration: Option<f64>,
+) -> Result<(), String> {
+    state
+        .profile_manager
+        .update_playback_position(&profile_id, &content_type, &content_id, position, duration)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Helper function to create an authenticated client for a profile
