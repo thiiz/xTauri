@@ -17,8 +17,8 @@
     "check:tauri": "tauri check",
     "start": "tauri dev",
     "clean": "rm -rf dist src-tauri/target",
-    "clean:full": "pnpm clean && rm -rf node_modules src-tauri/target pnpm-lock.yaml Cargo.lock",
-    "install:all": "pnpm install && cd src-tauri && cargo build",
+    "clean:full": "bun clean && rm -rf node_modules src-tauri/target bun-lock.yaml Cargo.lock",
+    "install:all": "bun install && cd src-tauri && cargo build",
     "type-check": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
@@ -30,7 +30,7 @@
     "hls.js": "^1.6.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

@@ -144,6 +144,62 @@ pub fn initialize_database() -> Result<Connection> {
         [],
     )?;
 
+    // Xtream Codes integration tables
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_profiles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            url TEXT NOT NULL,
+            username TEXT NOT NULL,
+            encrypted_credentials BLOB NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_used DATETIME,
+            is_active BOOLEAN DEFAULT FALSE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_content_cache (
+            cache_key TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            data BLOB NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_favorites (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            content_id TEXT NOT NULL,
+            content_data BLOB NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE,
+            UNIQUE(profile_id, content_type, content_id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_history (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            content_id TEXT NOT NULL,
+            content_data BLOB NOT NULL,
+            watched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
     let list_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM channel_lists", [], |row| row.get(0))?;
     if list_count == 0 {

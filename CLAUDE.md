@@ -9,17 +9,17 @@ Tollo is a modern IPTV player built with Tauri (Rust backend) and React/TypeScri
 ## Development Commands
 
 ### Frontend (React/TypeScript)
-- `pnpm dev` - Start Vite development server
-- `pnpm build` - Build frontend (runs TypeScript compiler + Vite build)
-- `pnpm type-check` - Run TypeScript type checking without emitting
-- `pnpm lint` - Run linting (currently just TypeScript type checking)
-- `pnpm format` - Format code with Prettier
-- `pnpm format:check` - Check code formatting
+- `bun dev` - Start Vite development server
+- `bun build` - Build frontend (runs TypeScript compiler + Vite build)
+- `bun type-check` - Run TypeScript type checking without emitting
+- `bun lint` - Run linting (currently just TypeScript type checking)
+- `bun format` - Format code with Prettier
+- `bun format:check` - Check code formatting
 
 ### Tauri (Full Application)
-- `pnpm start` or `pnpm dev:tauri` - Start Tauri development mode
-- `pnpm build:tauri` - Build complete Tauri application
-- `pnpm check:tauri` - Run Tauri configuration checks
+- `bun start` or `bun dev:tauri` - Start Tauri development mode
+- `bun build:tauri` - Build complete Tauri application
+- `bun check:tauri` - Run Tauri configuration checks
 
 ### Rust Backend
 - `cd src-tauri && cargo build` - Build Rust backend
@@ -27,9 +27,9 @@ Tollo is a modern IPTV player built with Tauri (Rust backend) and React/TypeScri
 - `cd src-tauri && cargo test` - Run Rust tests
 
 ### Cleanup
-- `pnpm clean` - Remove dist and target directories
-- `pnpm clean:full` - Full cleanup including node_modules and lock files
-- `pnpm install:all` - Install all dependencies (Node.js + Rust)
+- `bun clean` - Remove dist and target directories
+- `bun clean:full` - Full cleanup including node_modules and lock files
+- `bun install:all` - Install all dependencies (Node.js + Rust)
 
 ## Architecture Overview
 

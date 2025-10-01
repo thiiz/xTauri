@@ -49,6 +49,17 @@ dashmap = "6.1"
 thiserror = "1.0"
 anyhow = "1.0"
 
+# Xtream integration dependencies
+aes = "0.8"
+rand = "0.8"
+base64 = "0.22"
+url = "2.5"
+
+# Platform-specific secure storage
+keyring = "2.3"
+pbkdf2 = "0.12"
+hmac = "0.12"
+
 [dev-dependencies]
 # Testing dependencies
 tokio-test = "0.4"

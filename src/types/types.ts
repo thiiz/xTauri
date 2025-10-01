@@ -743,6 +743,68 @@ export type XtreamFullEPGListing = Prettify<
   }
 >;
 
+/**
+ * Enhanced EPG listing with additional metadata and formatting
+ *
+ * This type represents an EPG listing enhanced with formatted times and status indicators
+ */
+export type EnhancedEPGListing = XtreamEPGListing & {
+  /** Formatted start time for display */
+  formatted_start?: string;
+  /** Formatted stop time for display */
+  formatted_stop?: string;
+  /** Start time as timestamp number */
+  start_timestamp?: number;
+  /** Stop time as timestamp number */
+  stop_timestamp?: number;
+  /** Duration in minutes */
+  duration_minutes?: number;
+  /** Formatted duration string (e.g., "1h 30m") */
+  formatted_duration?: string;
+  /** Whether this program is currently airing */
+  is_current?: boolean;
+  /** Whether this program has already aired */
+  is_past?: boolean;
+  /** Whether this program will air in the future */
+  is_future?: boolean;
+  /** Progress percentage for current programs (0-100) */
+  progress_percent?: number;
+};
+
+/**
+ * Current and next EPG data for a channel
+ *
+ * This type represents the current and next programs for a channel
+ */
+export type CurrentAndNextEPG = {
+  /** The currently airing program, if any */
+  current: EnhancedEPGListing | null;
+  /** The next program to air, if any */
+  next: EnhancedEPGListing | null;
+  /** All programs in the queried time range */
+  all_programs: EnhancedEPGListing[];
+};
+
+/**
+ * EPG filter options for time-based filtering
+ */
+export type EPGTimeFilter = {
+  /** Start timestamp for filtering */
+  start_timestamp?: number;
+  /** End timestamp for filtering */
+  end_timestamp?: number;
+};
+
+/**
+ * EPG search options for content-based searching
+ */
+export type EPGSearchOptions = {
+  /** Search query for title and description */
+  query: string;
+  /** Whether to search case-sensitively */
+  case_sensitive?: boolean;
+};
+
 export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};

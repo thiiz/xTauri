@@ -12,4 +12,7 @@
 @import "./styles/settings.css";
 @import "./styles/help.css";
 @import "./styles/filters.css";
+@import "./styles/profiles.css";
+@import "./styles/movies.css";
+@import "./styles/series.css";
 @import "./styles/responsive.css";

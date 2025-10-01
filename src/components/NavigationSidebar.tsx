@@ -1,19 +1,26 @@
+import { useChannelStore, useUIStore } from "../stores";
 import {
-  TvIcon,
   HeartIcon,
-  UsersIcon,
-  HistoryIcon,
   HelpIcon,
+  HistoryIcon,
+  MovieIcon,
+  ProfileIcon,
+  SeriesIcon,
   SettingsIcon,
+  TvIcon,
+  UsersIcon
 } from "./Icons";
+import ProfileSelector from "./ProfileSelector";
 import SavedFilters from "./SavedFilters";
-import { useUIStore, useChannelStore } from "../stores";
 
 type Tab =
   | "channels"
   | "favorites"
   | "groups"
   | "history"
+  | "movies"
+  | "series"
+  | "profiles"
   | "help"
   | "settings";
 
@@ -26,6 +33,9 @@ export default function NavigationSidebar() {
       <div className="app-header">
         <div className="app-logo">
           <img className="app-logo-icon" src="/logo.png" alt="Tollo logo" />
+        </div>
+        <div className="profile-selector-container">
+          <ProfileSelector />
         </div>
         <nav className="nav-menu">
           <button
@@ -57,6 +67,27 @@ export default function NavigationSidebar() {
             History
           </button>
           <button
+            className={`nav-button ${activeTab === "movies" ? "active" : ""}`}
+            onClick={() => setActiveTab("movies")}
+          >
+            <MovieIcon />
+            Movies
+          </button>
+          <button
+            className={`nav-button ${activeTab === "series" ? "active" : ""}`}
+            onClick={() => setActiveTab("series")}
+          >
+            <SeriesIcon />
+            Series
+          </button>
+          <button
+            className={`nav-button ${activeTab === "profiles" ? "active" : ""}`}
+            onClick={() => setActiveTab("profiles")}
+          >
+            <ProfileIcon />
+            Profiles
+          </button>
+          <button
             className={`nav-button ${activeTab === "help" ? "active" : ""}`}
             onClick={() => setActiveTab("help")}
           >
@@ -78,3 +109,4 @@ export default function NavigationSidebar() {
 }
 
 export type { Tab };
+

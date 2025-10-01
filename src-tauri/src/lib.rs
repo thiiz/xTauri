@@ -15,6 +15,7 @@ pub mod search;
 mod settings;
 mod state;
 mod utils;
+pub mod xtream;
 
 #[cfg(test)]
 mod integration_tests;
@@ -25,6 +26,7 @@ use playlists::FetchState;
 use state::{ChannelCacheState, DbState, ImageCacheState};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
+use xtream::{XtreamState, ProfileManager, CredentialManager, ContentCache};
 
 // Import all the command functions from their respective modules
 use channels::*;
@@ -36,6 +38,7 @@ use image_cache_api::*;
 use playlists::*;
 use search::*;
 use settings::*;
+use xtream::commands::*;
 
 fn initialize_application() -> Result<(rusqlite::Connection, Vec<m3u_parser::Channel>)> {
     let mut db_connection = database::initialize_database()
@@ -58,6 +61,24 @@ fn setup_image_cache(app: &tauri::App) -> Result<ImageCache> {
         .map_err(|e| TolloError::internal(format!("Failed to initialize image cache: {}", e)))
 }
 
+fn setup_xtream_state(db_connection: Arc<Mutex<rusqlite::Connection>>) -> Result<XtreamState> {
+    // Create credential manager
+    let credential_manager = Arc::new(
+        CredentialManager::new()
+            .map_err(|e| TolloError::internal(format!("Failed to initialize credential manager: {}", e)))?
+    );
+    
+    // Create content cache using the same database connection
+    let content_cache = Arc::new(
+        ContentCache::new(Arc::clone(&db_connection), std::time::Duration::from_secs(3600))
+    );
+    
+    // Create profile manager using the same database connection
+    let profile_manager = Arc::new(ProfileManager::new(db_connection, credential_manager));
+    
+    Ok(XtreamState::new(profile_manager, content_cache))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let (db_connection, _channels) = match initialize_application() {
@@ -69,9 +90,16 @@ pub fn run() {
         }
     };
 
+    let db_arc = Arc::new(Mutex::new(db_connection));
+    
     tauri::Builder::default()
         .manage(DbState {
-            db: Mutex::new(db_connection),
+            db: Mutex::new(
+                // Create a new connection for the DbState since we need to share the Arc
+                database::initialize_database()
+                    .map_err(|e| TolloError::database_init(format!("Failed to create second DB connection: {}", e)))
+                    .unwrap()
+            ),
         })
         .manage(ChannelCacheState {
             cache: Mutex::new(None),
@@ -88,6 +116,17 @@ pub fn run() {
             app.manage(ImageCacheState {
                 cache: Arc::new(image_cache),
             });
+            
+            // Initialize Xtream state
+            let xtream_state = match setup_xtream_state(db_arc) {
+                Ok(state) => state,
+                Err(e) => {
+                    eprintln!("Failed to initialize Xtream state: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+            app.manage(xtream_state);
+            
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -161,6 +200,52 @@ pub fn run() {
             save_filter,
             get_saved_filters,
             delete_saved_filter,
+            // Xtream commands
+            create_xtream_profile,
+            update_xtream_profile,
+            delete_xtream_profile,
+            get_xtream_profiles,
+            get_xtream_profile,
+            validate_xtream_credentials,
+            authenticate_xtream_profile,
+            get_xtream_channel_categories,
+            get_xtream_channels,
+            get_xtream_channels_paginated,
+            get_xtream_movie_categories,
+            get_xtream_movies,
+            get_xtream_movies_paginated,
+            get_xtream_movie_info,
+            get_xtream_series_categories,
+            get_xtream_series,
+            get_xtream_series_paginated,
+            get_xtream_series_info,
+            get_xtream_short_epg,
+            get_xtream_full_epg,
+            get_xtream_epg_for_channels,
+            get_xtream_epg_by_date_range,
+            format_epg_time,
+            get_current_timestamp,
+            get_timestamp_hours_from_now,
+            parse_epg_programs,
+            parse_and_enhance_epg_data,
+            get_xtream_current_and_next_epg,
+            filter_epg_by_time_range,
+            search_epg_programs,
+            generate_xtream_stream_url,
+            filter_xtream_channels,
+            sort_xtream_channels,
+            search_xtream_channels,
+            get_xtream_channel_counts_by_category,
+            validate_xtream_channel_data,
+            filter_xtream_movies,
+            sort_xtream_movies,
+            search_xtream_movies,
+            validate_xtream_movie_data,
+            generate_xtream_episode_stream_url,
+            filter_xtream_series,
+            sort_xtream_series,
+            search_xtream_series,
+            validate_xtream_series_data,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

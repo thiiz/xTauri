@@ -103,6 +103,31 @@ pub enum TolloError {
     #[error("Resource not found: {resource}")]
     NotFound { resource: String },
     
+    // Xtream-specific errors
+    #[error("Xtream authentication failed: {reason}")]
+    XtreamAuthenticationFailed { reason: String },
+    
+    #[error("Invalid Xtream credentials")]
+    XtreamInvalidCredentials,
+    
+    #[error("Xtream profile not found: {id}")]
+    XtreamProfileNotFound { id: String },
+    
+    #[error("Xtream API error: {status} - {message}")]
+    XtreamApiError { status: u16, message: String },
+    
+    #[error("Credential encryption error: {reason}")]
+    CredentialEncryption { reason: String },
+    
+    #[error("Credential decryption error: {reason}")]
+    CredentialDecryption { reason: String },
+    
+    #[error("Content cache error: {operation}")]
+    ContentCache { operation: String },
+    
+    #[error("Profile validation failed: {reason}")]
+    ProfileValidation { reason: String },
+    
     // Generic errors
     #[error("Internal error: {reason}")]
     Internal { reason: String },
@@ -175,6 +200,56 @@ impl TolloError {
         }
     }
     
+    /// Create a new Xtream authentication error
+    pub fn xtream_auth_failed(reason: impl Into<String>) -> Self {
+        Self::XtreamAuthenticationFailed {
+            reason: reason.into(),
+        }
+    }
+    
+    /// Create a new Xtream profile not found error
+    pub fn xtream_profile_not_found(id: impl Into<String>) -> Self {
+        Self::XtreamProfileNotFound {
+            id: id.into(),
+        }
+    }
+    
+    /// Create a new Xtream API error
+    pub fn xtream_api_error(status: u16, message: impl Into<String>) -> Self {
+        Self::XtreamApiError {
+            status,
+            message: message.into(),
+        }
+    }
+    
+    /// Create a new credential encryption error
+    pub fn credential_encryption(reason: impl Into<String>) -> Self {
+        Self::CredentialEncryption {
+            reason: reason.into(),
+        }
+    }
+    
+    /// Create a new credential decryption error
+    pub fn credential_decryption(reason: impl Into<String>) -> Self {
+        Self::CredentialDecryption {
+            reason: reason.into(),
+        }
+    }
+    
+    /// Create a new content cache error
+    pub fn content_cache(operation: impl Into<String>) -> Self {
+        Self::ContentCache {
+            operation: operation.into(),
+        }
+    }
+    
+    /// Create a new profile validation error
+    pub fn profile_validation(reason: impl Into<String>) -> Self {
+        Self::ProfileValidation {
+            reason: reason.into(),
+        }
+    }
+    
     /// Check if the error is recoverable
     pub fn is_recoverable(&self) -> bool {
         match self {
@@ -189,6 +264,12 @@ impl TolloError {
             
             // Lock acquisition failures might be recoverable
             TolloError::LockAcquisition { .. } => true,
+            
+            // Xtream authentication errors might be recoverable
+            TolloError::XtreamAuthenticationFailed { .. } | TolloError::XtreamApiError { .. } => true,
+            
+            // Content cache errors are usually recoverable
+            TolloError::ContentCache { .. } => true,
             
             // Most other errors are not recoverable
             _ => false,
@@ -209,6 +290,13 @@ impl TolloError {
             TolloError::InvalidUrl { .. } => "Invalid URL format. Please check the URL and try again.".to_string(),
             TolloError::Timeout { .. } => "Operation timed out. Please try again.".to_string(),
             TolloError::NotFound { .. } => "Requested item not found.".to_string(),
+            TolloError::XtreamAuthenticationFailed { .. } => "Failed to authenticate with Xtream server. Please check your credentials.".to_string(),
+            TolloError::XtreamInvalidCredentials => "Invalid Xtream credentials. Please check your username, password, and server URL.".to_string(),
+            TolloError::XtreamProfileNotFound { .. } => "Xtream profile not found.".to_string(),
+            TolloError::XtreamApiError { .. } => "Xtream server error. Please try again later.".to_string(),
+            TolloError::CredentialEncryption { .. } | TolloError::CredentialDecryption { .. } => "Failed to process credentials securely.".to_string(),
+            TolloError::ContentCache { .. } => "Content cache error. Data will be refreshed.".to_string(),
+            TolloError::ProfileValidation { .. } => "Profile validation failed. Please check your profile settings.".to_string(),
             _ => "An unexpected error occurred. Please try again.".to_string(),
         }
     }
@@ -226,6 +314,9 @@ impl TolloError {
             TolloError::InvalidChannelId { .. } | TolloError::InvalidPlaylistId { .. } | TolloError::InvalidUrl { .. } => "validation",
             TolloError::LockAcquisition { .. } | TolloError::Timeout { .. } | TolloError::Cancelled { .. } => "concurrency",
             TolloError::NotInitialized | TolloError::FeatureNotAvailable { .. } | TolloError::NotFound { .. } => "state",
+            TolloError::XtreamAuthenticationFailed { .. } | TolloError::XtreamInvalidCredentials | TolloError::XtreamProfileNotFound { .. } | TolloError::XtreamApiError { .. } => "xtream",
+            TolloError::CredentialEncryption { .. } | TolloError::CredentialDecryption { .. } => "security",
+            TolloError::ContentCache { .. } | TolloError::ProfileValidation { .. } => "xtream",
             TolloError::Internal { .. } | TolloError::Unknown => "internal",
         }
     }

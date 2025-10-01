@@ -3,4 +3,4 @@ description:
 globs: 
 alwaysApply: true
 ---
-this is pnpm project, not npm. use pnpm.
+this is bun project, not npm. use bun.

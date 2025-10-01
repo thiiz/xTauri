@@ -11,6 +11,10 @@
   padding: 1.5rem;
 }
 
+.profile-selector-container {
+  margin-bottom: 1.5rem;
+}
+
 .app-logo {
   display: flex;
   align-items: center;

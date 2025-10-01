@@ -120,3 +120,47 @@ export const StarIcon = () => (
     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
   </svg>
 );
+
+export const ProfileIcon = () => (
+  <svg
+    className="nav-icon"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+export const MovieIcon = () => (
+  <svg
+    className="nav-icon"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+    <circle cx="8" cy="8" r="2" />
+    <path d="M16 6l-4 4-2-2-4 4" />
+  </svg>
+);
+
+export const SeriesIcon = () => (
+  <svg
+    className="nav-icon"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <rect x="3" y="4" width="18" height="12" rx="1" />
+    <rect x="7" y="8" width="4" height="4" rx="1" />
+    <rect x="13" y="8" width="4" height="4" rx="1" />
+    <line x1="3" y1="20" x2="21" y2="20" />
+  </svg>
+);

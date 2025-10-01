@@ -1,13 +1,18 @@
-import ChannelList, { type Channel } from "./ChannelList";
-import GroupList from "./GroupList";
-import ChannelLoadingProgress from "./ChannelLoadingProgress";
+import { useEffect } from "react";
 import {
   useChannelStore,
-  useUIStore,
+  useProfileStore,
   useSearchStore,
   useSettingsStore,
+  useUIStore,
+  useXtreamContentStore,
 } from "../stores";
-import { useEffect } from "react";
+import ChannelList, { type Channel } from "./ChannelList";
+import ChannelLoadingProgress from "./ChannelLoadingProgress";
+import GroupList from "./GroupList";
+import MovieGrid from "./MovieGrid";
+import ProfileManager from "./ProfileManager";
+import SeriesBrowser from "./SeriesBrowser";
 
 interface MainContentProps {
   filteredChannels: Channel[];
@@ -43,6 +48,13 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
   const { searchQuery, isSearching, setSearchQuery } = useSearchStore();
 
   const { channelListName, getChannelListName } = useSettingsStore();
+
+  const { activeProfile } = useProfileStore();
+
+  const {
+    movies,
+    series
+  } = useXtreamContentStore();
 
   useEffect(() => {
     if (selectedChannelListId !== null) {
@@ -113,6 +125,12 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
         return channelListName ? `Groups (${channelListName})` : "Groups";
       case "history":
         return "History";
+      case "movies":
+        return "Movies";
+      case "series":
+        return "TV Series";
+      case "profiles":
+        return "Xtream Profiles";
       default:
         return "IPTV Player";
     }
@@ -128,6 +146,16 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
         return `${groups.length} groups available`;
       case "history":
         return `${history.length} recently watched`;
+      case "movies":
+        return activeProfile
+          ? `${movies.length} movies available`
+          : "Select an Xtream profile to view movies";
+      case "series":
+        return activeProfile
+          ? `${series.length} series available`
+          : "Select an Xtream profile to view series";
+      case "profiles":
+        return "Manage your Xtream Codes profiles";
       default:
         return "";
     }
@@ -205,6 +233,28 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             <ChannelList channels={history} />
           </div>
         );
+      case "movies":
+        if (!activeProfile) {
+          return (
+            <div className="content-placeholder">
+              <h3>No Xtream Profile Selected</h3>
+              <p>Please select an Xtream profile to browse movies.</p>
+            </div>
+          );
+        }
+        return <MovieGrid />;
+      case "series":
+        if (!activeProfile) {
+          return (
+            <div className="content-placeholder">
+              <h3>No Xtream Profile Selected</h3>
+              <p>Please select an Xtream profile to browse TV series.</p>
+            </div>
+          );
+        }
+        return <SeriesBrowser />;
+      case "profiles":
+        return <ProfileManager />;
 
       default:
         return null;

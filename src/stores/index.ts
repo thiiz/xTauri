@@ -1,5 +1,8 @@
 export { useChannelStore } from "./channelStore";
-export { useUIStore, GroupDisplayMode } from "./uiStore";
-export { useSearchStore } from "./searchStore";
 export { useFilterStore, type SavedFilter } from "./filterStore";
+export { useProfileStore, type CreateProfileRequest, type ProfileCredentials, type ProfileValidationResult, type UpdateProfileRequest, type XtreamProfile } from "./profileStore";
+export { useSearchStore } from "./searchStore";
 export { useSettingsStore } from "./settingsStore";
+export { GroupDisplayMode, useUIStore } from "./uiStore";
+export { useXtreamContentStore } from "./xtreamContentStore";
+

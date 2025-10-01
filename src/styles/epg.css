@@ -1,0 +1,317 @@
+/* EPG Display Styles */
+
+.epg-display {
+  background: var(--background-secondary, #1a1a1a);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px 0;
+  border: 1px solid var(--border-color, #333);
+}
+
+.epg-display.loading,
+.epg-display.error,
+.epg-display.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.epg-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary, #888);
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color, #333);
+  border-top: 2px solid var(--accent-color, #007acc);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.epg-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--error-color, #ff6b6b);
+}
+
+.retry-button {
+  background: var(--accent-color, #007acc);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+  background: var(--accent-color-hover, #005a9e);
+}
+
+.epg-empty {
+  color: var(--text-secondary, #888);
+  font-style: italic;
+}
+
+.epg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.epg-header h3 {
+  margin: 0;
+  color: var(--text-primary, #fff);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.epg-count {
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+}
+
+.epg-programs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.epg-program {
+  background: var(--background-tertiary, #2a2a2a);
+  border-radius: 6px;
+  padding: 12px;
+  border-left: 4px solid var(--border-color, #333);
+  transition: all 0.2s;
+}
+
+.epg-program.current {
+  border-left-color: var(--success-color, #4caf50);
+  background: var(--background-current, #1a2e1a);
+}
+
+.epg-program.past {
+  opacity: 0.6;
+  border-left-color: var(--text-secondary, #888);
+}
+
+.epg-program.future {
+  border-left-color: var(--accent-color, #007acc);
+}
+
+.epg-program:hover {
+  background: var(--background-hover, #3a3a3a);
+}
+
+.epg-program-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.epg-program-title {
+  margin: 0;
+  color: var(--text-primary, #fff);
+  font-size: 16px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 200px;
+}
+
+.epg-program-time {
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.epg-program-duration {
+  color: var(--text-tertiary, #666);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.epg-program-description {
+  margin: 0 0 8px 0;
+  color: var(--text-secondary, #ccc);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.epg-program-progress {
+  margin: 8px 0;
+}
+
+.epg-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--background-quaternary, #444);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.epg-progress-fill {
+  height: 100%;
+  background: var(--success-color, #4caf50);
+  transition: width 0.3s ease;
+}
+
+.epg-progress-text {
+  color: var(--text-tertiary, #888);
+  font-size: 12px;
+}
+
+.epg-program-status {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.current {
+  background: var(--success-color, #4caf50);
+  color: white;
+}
+
+.status-badge.past {
+  background: var(--text-secondary, #888);
+  color: white;
+}
+
+.status-badge.future {
+  background: var(--accent-color, #007acc);
+  color: white;
+}
+
+.epg-more {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-secondary, #888);
+  font-style: italic;
+  border-top: 1px solid var(--border-color, #333);
+  margin-top: 12px;
+}
+
+/* Current & Next Layout */
+.epg-current-next {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .epg-current-next {
+    grid-template-columns: 1fr;
+  }
+}
+
+.epg-current,
+.epg-next {
+  background: var(--background-tertiary, #2a2a2a);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.epg-current h4,
+.epg-next h4 {
+  margin: 0 0 12px 0;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.epg-current.empty,
+.epg-next.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: var(--text-secondary, #888);
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .epg-program-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .epg-program-title {
+    min-width: auto;
+  }
+  
+  .epg-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .epg-display {
+    --background-secondary: #1a1a1a;
+    --background-tertiary: #2a2a2a;
+    --background-quaternary: #444;
+    --background-current: #1a2e1a;
+    --background-hover: #3a3a3a;
+    --text-primary: #fff;
+    --text-secondary: #ccc;
+    --text-tertiary: #888;
+    --border-color: #333;
+    --accent-color: #007acc;
+    --accent-color-hover: #005a9e;
+    --success-color: #4caf50;
+    --error-color: #ff6b6b;
+  }
+}
+
+/* Light theme adjustments */
+@media (prefers-color-scheme: light) {
+  .epg-display {
+    --background-secondary: #f5f5f5;
+    --background-tertiary: #fff;
+    --background-quaternary: #e0e0e0;
+    --background-current: #e8f5e8;
+    --background-hover: #f0f0f0;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-tertiary: #999;
+    --border-color: #ddd;
+    --accent-color: #007acc;
+    --accent-color-hover: #005a9e;
+    --success-color: #4caf50;
+    --error-color: #f44336;
+  }
+}

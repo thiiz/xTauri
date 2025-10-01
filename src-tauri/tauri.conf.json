@@ -4,9 +4,9 @@
   "version": "0.1.8",
   "identifier": "com.tollo.app",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bun build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -23,7 +23,9 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/image_cache/**"]
+        "scope": [
+          "$APPDATA/image_cache/**"
+        ]
       }
     }
   },

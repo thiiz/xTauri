@@ -43,13 +43,13 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: bun/action-setup@v4
         with:
           version: 8
 
       - name: Install frontend dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
