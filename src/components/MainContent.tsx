@@ -53,7 +53,9 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
 
   const {
     movies,
-    series
+    series,
+    channels: xtreamChannels,
+    fetchChannels: fetchXtreamChannels
   } = useXtreamContentStore();
 
   useEffect(() => {
@@ -61,6 +63,13 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
       getChannelListName(selectedChannelListId);
     }
   }, [selectedChannelListId, getChannelListName]);
+
+  // Load Xtream channels when profile becomes active
+  useEffect(() => {
+    if (activeProfile && activeTab === "channels") {
+      fetchXtreamChannels(activeProfile.id);
+    }
+  }, [activeProfile, activeTab, fetchXtreamChannels]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -136,10 +145,42 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     }
   };
 
+  // Combine traditional channels with Xtream channels
+  const combinedChannels = (() => {
+    const combined = [...filteredChannels];
+
+    if (activeProfile && xtreamChannels.length > 0) {
+      // Convert Xtream channels to traditional channel format
+      const convertedXtreamChannels = xtreamChannels.map(xtreamChannel => ({
+        name: xtreamChannel.name,
+        logo: xtreamChannel.stream_icon,
+        url: xtreamChannel.url || '',
+        group_title: 'Xtream Live TV', // Default group for Xtream channels
+        tvg_id: xtreamChannel.epg_channel_id,
+        resolution: 'HD',
+        extra_info: `Stream ID: ${xtreamChannel.stream_id}`
+      }));
+
+      combined.push(...convertedXtreamChannels);
+    }
+
+    return combined;
+  })();
+
   const getTabSubtitle = () => {
     switch (activeTab) {
       case "channels":
-        return `${filteredChannels.length} channels available`;
+        const totalChannels = combinedChannels.length;
+        const xtreamCount = activeProfile ? xtreamChannels.length : 0;
+        const traditionalCount = filteredChannels.length;
+
+        if (xtreamCount > 0 && traditionalCount > 0) {
+          return `${totalChannels} channels available (${traditionalCount} playlist + ${xtreamCount} Xtream)`;
+        } else if (xtreamCount > 0) {
+          return `${totalChannels} Xtream channels available`;
+        } else {
+          return `${totalChannels} channels available`;
+        }
       case "favorites":
         return `${favorites.length} favorite channels`;
       case "groups":
@@ -211,7 +252,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             )}
             {isSearching && <div className="search-status">Searching...</div>}
             <div className="content-list">
-              <ChannelList channels={filteredChannels} />
+              <ChannelList channels={combinedChannels} />
             </div>
           </>
         );
