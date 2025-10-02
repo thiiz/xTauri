@@ -7,6 +7,7 @@ import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import type { EnhancedEPGListing, XtreamChannel, XtreamMoviesListing, XtreamShow } from "../types/types";
 import type { Channel } from "./ChannelList";
 import { PlayIcon } from "./Icons";
+import Hls from "hls.js";
 
 interface ContentItem {
   type: 'channel' | 'xtream-channel' | 'xtream-movie' | 'xtream-series';
@@ -49,6 +50,9 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [resumePosition, setResumePosition] = useState(0);
     const [showMetadata, setShowMetadata] = useState(false);
+
+    // HLS.js reference for handling live streams
+    const hlsRef = useRef<Hls | null>(null);
 
     // Use content playback hook for enhanced features
     const {
@@ -176,6 +180,105 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
 
       fetchEPGData();
     }, [activeContent, activeProfile, currentAndNextEPG, epgData]);
+
+    // Setup HLS.js for live streams
+    useEffect(() => {
+      // Cleanup previous HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      // Only setup HLS for streams with URL and video element
+      if (!streamUrl || !ref || typeof ref === 'function') {
+        return;
+      }
+
+      const video = ref.current;
+      if (!video) return;
+
+      // Check if this is an HLS stream (more comprehensive detection)
+      const isHlsUrl = streamUrl.includes('.m3u8') ||
+        streamUrl.includes('m3u8') ||
+        streamUrl.includes('playlist.m3u8') ||
+        streamUrl.includes('index.m3u8') ||
+        activeContent?.type === 'channel' ||
+        activeContent?.type === 'xtream-channel';
+      console.log('Stream URL:', streamUrl, 'Is HLS:', isHlsUrl, 'HLS Supported:', Hls.isSupported());
+
+      if (isHlsUrl && Hls.isSupported()) {
+        // Use HLS.js for .m3u8 streams when supported
+        const hls = new Hls({
+          enableWorker: false, // Disable worker for better compatibility
+          lowLatencyMode: true, // Enable low latency for live streams
+          backBufferLength: 90, // Keep 90 seconds of back buffer
+        });
+
+        hlsRef.current = hls;
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('HLS manifest parsed successfully');
+          if (autoplay) {
+            video.play().catch(console.error);
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.warn('HLS error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.log('Network error, trying to recover...');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('Media error, trying to recover...');
+                hls.recoverMediaError();
+                break;
+              default:
+                console.log('Fatal error, trying direct video fallback');
+                hls.destroy();
+                // Try direct video as fallback
+                video.src = streamUrl;
+                video.load();
+                break;
+            }
+          }
+        });
+
+        // Clear codec warning on successful load
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setCodecWarning(false);
+        });
+
+      } else if (isHlsUrl && video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        video.src = streamUrl;
+        video.addEventListener('loadedmetadata', () => {
+          if (autoplay) video.play().catch(console.error);
+        });
+        video.addEventListener('error', () => setCodecWarning(true));
+        video.addEventListener('loadstart', () => setCodecWarning(false));
+      } else {
+        // Direct video streams (MP4, WebM, etc.) - no HLS needed
+        video.src = streamUrl;
+        video.addEventListener('loadedmetadata', () => {
+          if (autoplay) video.play().catch(console.error);
+        });
+        video.addEventListener('error', () => setCodecWarning(true));
+        video.addEventListener('loadstart', () => setCodecWarning(false));
+      }
+
+      // Cleanup function
+      return () => {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+      };
+    }, [streamUrl, autoplay, ref]);
 
     // Helper functions
     const getContentId = (content: ContentItem): string | null => {
@@ -360,9 +463,6 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
                   controls={showControls}
                   muted={muteOnStart}
                   autoPlay={autoplay}
-                  src={streamUrl}
-                  onError={() => setCodecWarning(true)}
-                  onLoadStart={() => setCodecWarning(false)}
                   onTimeUpdate={handleVideoTimeUpdate}
                   onLoadedMetadata={handleVideoLoadedMetadata}
                 />
@@ -378,7 +478,7 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
 
               {codecWarning && (
                 <div className="codec-warning">
-                  ⚠️ Video codec issue detected. Install GStreamer plugins: gstreamer1.0-plugins-bad gstreamer1.0-libav
+                  ⚠️ Unable to play this stream. The video format may not be supported by your browser. Try using an external player.
                 </div>
               )}
 
