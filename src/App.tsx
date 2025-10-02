@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import Hls from "hls.js";
-import { startTransition, useEffect, useRef } from "react";
-import ChannelDetails from "./components/ChannelDetails";
+import { startTransition, useEffect, useRef, useState } from "react";
 import Help from "./components/Help";
 import MainContent from "./components/MainContent";
 import NavigationSidebar from "./components/NavigationSidebar";
@@ -9,6 +8,9 @@ import Settings from "./components/Settings";
 
 import "./App.css";
 import type { Channel } from "./components/ChannelList";
+import MovieGrid from "./components/MovieGrid";
+import SeriesBrowser from "./components/SeriesBrowser";
+import VideoPlayerWrapper, { type ContentItem } from "./components/VideoPlayerWrapper";
 import { useChannelSearch } from "./hooks/useChannelSearch";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { useSavedFilters } from "./hooks/useSavedFilters";
@@ -21,7 +23,8 @@ import {
   type SavedFilter,
 } from "./stores";
 import { asyncPlaylistStore } from "./stores/asyncPlaylistStore";
-import VideoPlayerWrapper from "./components/VideoPlayerWrapper";
+import type { XtreamEpisode, XtreamMoviesListing, XtreamShow, XtreamShowListing } from "./types/types";
+import ContentDetails from "./components/ContentDetails";
 
 function App() {
   // Zustand store hooks
@@ -73,6 +76,9 @@ function App() {
   // Refs for video player
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // State for Xtream content playback
+  const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
 
   // Custom hooks (keeping existing functionality)
   const { debouncedSearchQuery, searchChannels } = useChannelSearch(
@@ -459,6 +465,58 @@ function App() {
     }
   };
 
+  // Handlers for Xtream content
+  const handleMovieSelect = (movie: XtreamMoviesListing) => {
+    const contentItem: ContentItem = {
+      type: 'xtream-movie',
+      data: movie,
+      metadata: {
+        title: movie.title || movie.name,
+        description: movie.plot,
+        duration: movie.episode_run_time,
+        genre: movie.genre,
+        rating: movie.rating,
+        year: movie.year,
+        cast: movie.cast,
+        director: movie.director,
+      }
+    };
+    setSelectedXtreamContent(contentItem);
+    // Clear any selected channel to avoid conflicts
+    setSelectedChannel(null);
+  };
+
+  const handleMoviePlay = (movie: XtreamMoviesListing) => {
+    handleMovieSelect(movie);
+  };
+
+  const handleSeriesSelect = (series: XtreamShowListing) => {
+    // For series selection, we don't play anything yet, just show details
+    console.log('Series selected:', series.name);
+  };
+
+  const handleEpisodePlay = (episode: XtreamEpisode, series: XtreamShow) => {
+    const contentItem: ContentItem = {
+      type: 'xtream-series',
+      data: {
+        ...series,
+        // Add episode-specific data for URL generation
+        stream_id: parseInt(episode.id),
+      } as any,
+      metadata: {
+        title: episode.title,
+        description: episode.info.plot || undefined,
+        duration: episode.info.duration_secs ? Math.floor(episode.info.duration_secs / 60) : undefined,
+        episodeId: episode.id,
+        seasonNumber: episode.season,
+        episodeNumber: parseInt(episode.episode_num),
+      }
+    };
+    setSelectedXtreamContent(contentItem);
+    // Clear any selected channel to avoid conflicts
+    setSelectedChannel(null);
+  };
+
   useKeyboardNavigation({
     activeTab,
     channels,
@@ -519,6 +577,62 @@ function App() {
               <Help />
             </div>
           </div>
+        ) : activeTab === "movies" ? (
+          <>
+            <div className="main-content-section">
+              <div className="section-header">
+                <h2 className="section-title">Movies</h2>
+                <p className="section-subtitle">Browse and watch movies</p>
+              </div>
+              <div className="movies-container">
+                <MovieGrid
+                  onMovieSelect={handleMovieSelect}
+                  onMoviePlay={handleMoviePlay}
+                />
+              </div>
+            </div>
+
+            <div
+              className={`video-section ${!enablePreview ? "preview-disabled" : ""}`}
+            >
+              {enablePreview && (
+                <VideoPlayerWrapper
+                  ref={videoRef}
+                  selectedXtreamContent={selectedXtreamContent}
+                />
+              )}
+
+              <ContentDetails selectedXtreamContent={selectedXtreamContent} />
+            </div>
+          </>
+        ) : activeTab === "series" ? (
+          <>
+            <div className="main-content-section">
+              <div className="section-header">
+                <h2 className="section-title">Series</h2>
+                <p className="section-subtitle">Browse and watch TV series</p>
+              </div>
+              <div className="series-container">
+                <SeriesBrowser
+                  onSeriesSelect={handleSeriesSelect}
+                  onEpisodePlay={handleEpisodePlay}
+                />
+              </div>
+            </div>
+
+            <div
+              className={`video-section ${!enablePreview ? "preview-disabled" : ""}`}
+            >
+              {enablePreview && (
+                <VideoPlayerWrapper
+                  ref={videoRef}
+                  selectedXtreamContent={selectedXtreamContent}
+                />
+              )}
+
+              <ContentDetails selectedXtreamContent={selectedXtreamContent} />
+            </div>
+          </>
         ) : (
           <>
             <MainContent filteredChannels={filteredChannels} />
@@ -526,9 +640,14 @@ function App() {
             <div
               className={`video-section ${!enablePreview ? "preview-disabled" : ""}`}
             >
-              {enablePreview && <VideoPlayerWrapper ref={videoRef} />}
+              {enablePreview && (
+                <VideoPlayerWrapper
+                  ref={videoRef}
+                  selectedXtreamContent={selectedXtreamContent}
+                />
+              )}
 
-              {selectedChannel && <ChannelDetails />}
+              <ContentDetails selectedXtreamContent={selectedXtreamContent} />
             </div>
           </>
         )}

@@ -248,7 +248,9 @@ export const useContentPlayback = () => {
       case 'xtream-movie':
         return (content.data as XtreamMoviesListing).stream_id.toString();
       case 'xtream-series':
-        return (content.data as XtreamShow).info?.series_id?.toString() || null;
+        // For series episodes, use the episode stream_id if available
+        const seriesData = content.data as any;
+        return seriesData.stream_id?.toString() || seriesData.info?.series_id?.toString() || null;
       default:
         return null;
     }
@@ -261,7 +263,7 @@ export const useContentPlayback = () => {
       case 'xtream-movie':
         return 'Movie';
       case 'xtream-series':
-        return 'Series';
+        return 'Movie'; // Episodes are treated as movies in the Xtream API
       default:
         return null;
     }

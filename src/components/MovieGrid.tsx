@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
@@ -114,21 +113,12 @@ export default function MovieGrid({ onMovieSelect, onMoviePlay }: MovieGridProps
     if (!activeProfile) return;
 
     try {
-      // Generate streaming URL for the movie
-      const streamUrl = await invoke<string>('generate_xtream_stream_url', {
-        profileId: activeProfile.id,
-        streamId: movie.stream_id.toString(),
-        streamType: 'movie'
-      });
-
       // Call the onMoviePlay callback with the movie data
       onMoviePlay?.(movie);
 
-      // You could also integrate with the existing channel selection system
-      // by importing and using the channel store if needed
-      console.log('Playing movie:', movie.name, 'URL:', streamUrl);
+      console.log('Playing movie:', movie.name);
     } catch (error) {
-      console.error('Failed to generate movie stream URL:', error);
+      console.error('Failed to play movie:', error);
     }
   };
 
