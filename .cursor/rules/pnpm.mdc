@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-this is bun project, not npm. use bun.
