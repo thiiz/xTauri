@@ -35,9 +35,6 @@ function App() {
     setChannels,
     setSelectedChannel,
     toggleFavorite,
-    playInExternalPlayer,
-    fetchFavoritesAsync,
-    fetchHistoryAsync,
   } = useChannelStore();
 
   const {
@@ -52,13 +49,12 @@ function App() {
     setSelectedGroup,
     setGroupDisplayMode,
     setGroupSearchTerm,
-    fetchEnabledGroups,
     selectAllGroups,
     unselectAllGroups,
     toggleGroupEnabled,
   } = useUIStore();
 
-  const { searchQuery, setSearchQuery, clearSearch } = useSearchStore();
+  const { searchQuery, clearSearch } = useSearchStore();
   const { activeProfile } = useProfileStore();
   const {
     channels: xtreamChannels,
@@ -97,8 +93,7 @@ function App() {
         await fetchXtreamChannels(activeProfile.id);
 
         // Load favorites and history
-        await fetchFavoritesAsync();
-        await fetchHistoryAsync();
+        // Note: These are now loaded on demand
       } catch (error) {
         console.error("Failed to load Xtream content:", error);
       }
@@ -169,14 +164,6 @@ function App() {
   const handleSelectGroup = (group: string | null) => {
     setSelectedGroup(group);
     setActiveTab("channels");
-  };
-
-  const handleToggleFavorite = async (channel: Channel) => {
-    await toggleFavorite(channel);
-  };
-
-  const handlePlayInExternalPlayer = (channel: Channel) => {
-    playInExternalPlayer(channel);
   };
 
   const filteredChannels = (() => {
@@ -363,8 +350,7 @@ function App() {
     setSelectedChannel,
     setActiveTab,
     handleSelectGroup,
-    handleToggleFavorite,
-    handlePlayInExternalPlayer,
+    handleToggleFavorite: toggleFavorite,
     savedFilters: [],
     onSaveFilter: async () => false,
     onApplyFilter: () => { },

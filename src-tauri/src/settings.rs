@@ -1,56 +1,5 @@
 use tauri::State;
 use crate::state::DbState;
-use std::process::Command;
-
-pub fn detect_default_player() -> String {
-    let players = if cfg!(target_os = "windows") {
-        vec!["vlc", "mpv", "mpc-hc"]
-    } else if cfg!(target_os = "macos") {
-        vec!["mpv", "vlc", "iina"]
-    } else {
-        vec!["mpv", "vlc", "totem", "smplayer"]
-    };
-
-    for player in players {
-        if Command::new("which").arg(player).output().map(|o| o.status.success()).unwrap_or(false) ||
-           Command::new("where").arg(player).output().map(|o| o.status.success()).unwrap_or(false) {
-            return player.to_string();
-        }
-    }
-    
-    // Fallback to mpv on Linux/macOS, vlc on Windows
-    if cfg!(target_os = "windows") {
-        "vlc".to_string()
-    } else {
-        "mpv".to_string()
-    }
-}
-
-#[tauri::command]
-pub fn get_player_command(state: State<DbState>) -> Result<String, String> {
-    let db = state.db.lock().unwrap();
-    match db.query_row(
-        "SELECT player_command FROM settings WHERE id = 1",
-        [],
-        |row| row.get(0),
-    ) {
-        Ok(command) => Ok(command),
-        Err(_) => {
-            let default_player = detect_default_player();
-            Ok(default_player)
-        }
-    }
-}
-
-#[tauri::command]
-pub fn set_player_command(state: State<DbState>, command: String) -> Result<(), String> {
-    let db = state.db.lock().unwrap();
-    db.execute(
-        "UPDATE settings SET player_command = ?1 WHERE id = 1",
-        &[&command],
-    ).map_err(|e| e.to_string())?;
-    Ok(())
-}
 
 #[tauri::command]
 pub fn get_cache_duration(state: State<DbState>) -> Result<i64, String> {
@@ -95,10 +44,9 @@ pub fn set_enable_preview(state: State<DbState>, enabled: bool) -> Result<(), St
     
     // If no rows were affected, insert a new settings row with default values
     if rows_affected == 0 {
-        let default_player = detect_default_player();
         db.execute(
-            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview) VALUES (1, ?1, 24, ?2)",
-            rusqlite::params![default_player, enabled],
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview) VALUES (1, 24, ?1)",
+            rusqlite::params![enabled],
         ).map_err(|e| e.to_string())?;
     }
     
@@ -125,10 +73,9 @@ pub fn set_mute_on_start(state: State<DbState>, enabled: bool) -> Result<(), Str
         &[&enabled],
     ).map_err(|e| e.to_string())?;
     if rows_affected == 0 {
-        let default_player = detect_default_player();
         db.execute(
-            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, ?1, 24, 1, ?2, 1, 0)",
-            rusqlite::params![default_player, enabled],
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, 24, 1, ?1, 1, 0)",
+            rusqlite::params![enabled],
         ).map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -154,10 +101,9 @@ pub fn set_show_controls(state: State<DbState>, enabled: bool) -> Result<(), Str
         &[&enabled],
     ).map_err(|e| e.to_string())?;
     if rows_affected == 0 {
-        let default_player = detect_default_player();
         db.execute(
-            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, ?1, 24, 1, 0, ?2, 0)",
-            rusqlite::params![default_player, enabled],
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, 24, 1, 0, ?1, 0)",
+            rusqlite::params![enabled],
         ).map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -183,10 +129,9 @@ pub fn set_autoplay(state: State<DbState>, enabled: bool) -> Result<(), String> 
         &[&enabled],
     ).map_err(|e| e.to_string())?;
     if rows_affected == 0 {
-        let default_player = detect_default_player();
         db.execute(
-            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, ?1, 24, 1, 0, 1, ?2)",
-            rusqlite::params![default_player, enabled],
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, 24, 1, 0, 1, ?1)",
+            rusqlite::params![enabled],
         ).map_err(|e| e.to_string())?;
     }
     Ok(())

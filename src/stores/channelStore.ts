@@ -18,22 +18,17 @@ interface ChannelState {
   history: Channel[];
   selectedChannel: Channel | null;
 
-  // Loading states
-  isExternalPlayerPlaying: boolean;
-
   // Actions
   setChannels: (channels: Channel[]) => void;
   setFavorites: (favorites: Channel[]) => void;
   setGroups: (groups: string[]) => void;
   setHistory: (history: Channel[]) => void;
   setSelectedChannel: (channel: Channel | null) => void;
-  setIsExternalPlayerPlaying: (playing: boolean) => void;
 
   // API actions
   fetchFavorites: () => Promise<void>;
   fetchHistory: () => Promise<void>;
   toggleFavorite: (channel: Channel) => Promise<void>;
-  playInExternalPlayer: (channel: Channel) => Promise<void>;
 }
 
 export const useChannelStore = create<ChannelState>((set, get) => ({
@@ -43,7 +38,6 @@ export const useChannelStore = create<ChannelState>((set, get) => ({
   groups: [],
   history: [],
   selectedChannel: null,
-  isExternalPlayerPlaying: false,
 
   // Basic setters
   setChannels: (channels) => set({ channels }),
@@ -51,8 +45,6 @@ export const useChannelStore = create<ChannelState>((set, get) => ({
   setGroups: (groups) => set({ groups }),
   setHistory: (history) => set({ history }),
   setSelectedChannel: (selectedChannel) => set({ selectedChannel }),
-  setIsExternalPlayerPlaying: (isExternalPlayerPlaying) =>
-    set({ isExternalPlayerPlaying }),
 
   // API actions
   fetchFavorites: async () => {
@@ -77,25 +69,6 @@ export const useChannelStore = create<ChannelState>((set, get) => ({
 
     // Refresh favorites
     get().fetchFavorites();
-  },
-
-  playInExternalPlayer: async (channel) => {
-    set({ isExternalPlayerPlaying: true });
-    try {
-      await invoke("play_channel", { channel });
-      // Refresh history only on successful playback
-      get().fetchHistory();
-      // Reset loading state after successful playback verification
-      set({ isExternalPlayerPlaying: false });
-    } catch (error) {
-      console.error("Failed to play channel:", error);
-      // Reset loading state on error
-      set({ isExternalPlayerPlaying: false });
-      // Notify user about the failure
-      alert(
-        `Failed to play channel "${channel.name}". The external player couldn't play this channel.`,
-      );
-    }
   },
 }));
 

@@ -134,7 +134,6 @@ pub fn run() {
             // Channel commands
             get_channels,
             get_groups,
-            play_channel,
             add_favorite,
             remove_favorite,
             get_favorites,
@@ -153,8 +152,6 @@ pub fn run() {
             get_favorites_async,
             get_history_async,
             // Settings commands
-            get_player_command,
-            set_player_command,
             get_cache_duration,
             set_cache_duration,
             get_enable_preview,

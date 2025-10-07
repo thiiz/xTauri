@@ -29,9 +29,6 @@ export default function NavigationSidebar() {
   return (
     <div className="nav-sidebar">
       <div className="app-header">
-        <div className="app-logo">
-          <img className="app-logo-icon" src="/logo.png" alt="Tollo logo" />
-        </div>
         <div className="profile-selector-container">
           <ProfileSelector />
         </div>

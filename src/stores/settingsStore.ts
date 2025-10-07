@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { create } from "zustand";
 import type { ChannelList } from "../types/settings";
 
 interface SettingsState {
@@ -8,7 +8,6 @@ interface SettingsState {
   channelListName: string | null;
 
   // Player settings
-  playerCommand: string;
   enablePreview: boolean;
   muteOnStart: boolean;
   showControls: boolean;
@@ -26,9 +25,6 @@ interface SettingsState {
   getChannelListName: (selectedChannelListId: number | null) => Promise<string>;
 
   // Player settings actions
-  setPlayerCommand: (command: string) => void;
-  savePlayerCommand: () => Promise<void>;
-  fetchPlayerCommand: () => Promise<void>;
   setEnablePreview: (enabled: boolean) => void;
   saveEnablePreview: () => Promise<void>;
   fetchEnablePreview: () => Promise<void>;
@@ -54,7 +50,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   // Initial state
   channelLists: [],
   channelListName: null,
-  playerCommand: "",
   enablePreview: true,
   muteOnStart: false,
   showControls: true,
@@ -64,7 +59,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   // Basic setters
   setChannelLists: (channelLists) => set({ channelLists }),
   setChannelListName: (channelListName) => set({ channelListName }),
-  setPlayerCommand: (playerCommand) => set({ playerCommand }),
   setEnablePreview: (enablePreview) => set({ enablePreview }),
   setMuteOnStart: (muteOnStart) => set({ muteOnStart }),
   setShowControls: (showControls) => set({ showControls }),
@@ -114,16 +108,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   // Player settings actions
-  savePlayerCommand: async () => {
-    const { playerCommand } = get();
-    await invoke("set_player_command", { command: playerCommand });
-  },
-
-  fetchPlayerCommand: async () => {
-    const fetchedCommand = await invoke<string>("get_player_command");
-    set({ playerCommand: fetchedCommand });
-  },
-
   saveEnablePreview: async () => {
     const { enablePreview } = get();
     await invoke("set_enable_preview", { enabled: enablePreview });

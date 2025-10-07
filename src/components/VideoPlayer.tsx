@@ -1,35 +1,18 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useState } from "react";
+import { useChannelStore, useSettingsStore } from "../stores";
 import { PlayIcon } from "./Icons";
-import { useChannelStore } from "../stores";
-import { useSettingsStore } from "../stores";
 
 const VideoPlayer = forwardRef<HTMLVideoElement, {}>((_, ref) => {
   const {
     selectedChannel,
-    isExternalPlayerPlaying,
-    setIsExternalPlayerPlaying,
   } = useChannelStore();
   const { muteOnStart, showControls, autoplay } = useSettingsStore();
-  const previousChannelRef = useRef(selectedChannel);
   const [codecWarning, setCodecWarning] = useState(false);
-
-  // Reset external player playing state when a different channel is selected
-  useEffect(() => {
-    if (
-      selectedChannel &&
-      previousChannelRef.current &&
-      selectedChannel.name !== previousChannelRef.current.name &&
-      isExternalPlayerPlaying
-    ) {
-      setIsExternalPlayerPlaying(false);
-    }
-    previousChannelRef.current = selectedChannel;
-  }, [selectedChannel, isExternalPlayerPlaying, setIsExternalPlayerPlaying]);
 
   return (
     <div className="video-preview">
       <div className="video-container">
-        {selectedChannel && !isExternalPlayerPlaying ? (
+        {selectedChannel ? (
           <>
             <video
               ref={ref}

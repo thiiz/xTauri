@@ -1,6 +1,6 @@
+import { GroupDisplayMode, useChannelStore, useUIStore } from "../stores";
 import CachedImage from "./CachedImage";
 import { SignalIcon, StarIcon } from "./Icons";
-import { useChannelStore, useUIStore, GroupDisplayMode } from "../stores";
 
 export default function ChannelDetails() {
   const {
@@ -8,7 +8,6 @@ export default function ChannelDetails() {
     channels,
     favorites,
     toggleFavorite,
-    playInExternalPlayer,
   } = useChannelStore();
   const { setSelectedGroup, setActiveTab, setGroupDisplayMode } = useUIStore();
 
@@ -67,12 +66,6 @@ export default function ChannelDetails() {
         <div className="separator"></div>
 
         <div className="actions-section">
-          <button
-            className="primary-button"
-            onClick={() => playInExternalPlayer(selectedChannel)}
-          >
-            Play in External Player
-          </button>
           <button
             className="secondary-button"
             onClick={() => toggleFavorite(selectedChannel)}

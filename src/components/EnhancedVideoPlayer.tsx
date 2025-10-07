@@ -34,15 +34,13 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
   ({ selectedContent }, ref) => {
     const {
       selectedChannel,
-      isExternalPlayerPlaying,
-      setIsExternalPlayerPlaying,
     } = useChannelStore();
 
     const { activeProfile } = useProfileStore();
     const { currentAndNextEPG, epgData } = useXtreamContentStore();
     const { muteOnStart, showControls, autoplay } = useSettingsStore();
 
-    const previousContentRef = useRef(selectedContent);
+
     const [codecWarning, setCodecWarning] = useState(false);
     const [currentEPG, setCurrentEPG] = useState<EnhancedEPGListing | null>(null);
     const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
@@ -66,19 +64,6 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
       data: selectedChannel,
       url: selectedChannel.url
     } : null);
-
-    // Reset external player playing state when content changes
-    useEffect(() => {
-      if (
-        activeContent &&
-        previousContentRef.current &&
-        getContentId(activeContent) !== getContentId(previousContentRef.current) &&
-        isExternalPlayerPlaying
-      ) {
-        setIsExternalPlayerPlaying(false);
-      }
-      previousContentRef.current = activeContent;
-    }, [activeContent, isExternalPlayerPlaying, setIsExternalPlayerPlaying]);
 
     // Generate stream URL for Xtream content and check for resume position
     useEffect(() => {
@@ -238,7 +223,7 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
           }
         });
 
-        hls.on(Hls.Events.ERROR, (event, data) => {
+        hls.on(Hls.Events.ERROR, (_event, data) => {
           console.warn('HLS error:', data);
           if (data.fatal) {
             switch (data.type) {
@@ -485,7 +470,7 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
     return (
       <div className="video-preview">
         <div className="video-container">
-          {activeContent && !isExternalPlayerPlaying ? (
+          {activeContent ? (
             <>
               {isGeneratingUrl ? (
                 <div className="video-placeholder">
@@ -514,7 +499,7 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
 
               {codecWarning && (
                 <div className="codec-warning">
-                  ⚠️ Unable to play this stream. The video format may not be supported by your browser. Try using an external player.
+                  ⚠️ Unable to play this stream. The video format may not be supported by your browser.
                 </div>
               )}
 

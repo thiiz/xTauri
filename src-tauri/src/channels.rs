@@ -3,13 +3,9 @@ use crate::m3u_parser_helpers::{get_m3u_content, parse_m3u_with_progress};
 use crate::search::clear_advanced_cache;
 use crate::state::{ChannelCache, ChannelCacheState, DbState};
 use serde::{Deserialize, Serialize};
-use std::process::Command;
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use std::sync::{Mutex, MutexGuard};
 use tauri::{AppHandle, Emitter, State};
-use tokio::time;
 
 // Helper function for safe mutex locking with timeout
 fn lock_with_timeout<'a, T>(mutex: &'a Mutex<T>, resource_name: &str) -> Result<MutexGuard<'a, T>, String> {
@@ -77,91 +73,7 @@ pub fn invalidate_channel_cache(cache_state: State<ChannelCacheState>) -> Result
     Ok(())
 }
 
-#[tauri::command]
-pub async fn play_channel(state: State<'_, DbState>, channel: Channel) -> Result<(), String> {
-    let player_command: String = {
-        let db = state.db.lock().unwrap();
 
-        // First, try to add to history
-        if let Err(e) = db.execute(
-            "INSERT OR REPLACE INTO history (name, logo, url, group_title, tvg_id, resolution, extra_info, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CURRENT_TIMESTAMP)",
-            &[&channel.name, &channel.logo, &channel.url, &channel.group_title, &channel.tvg_id, &channel.resolution, &channel.extra_info],
-        ) {
-            eprintln!("Warning: Failed to add channel to history: {}", e);
-            // Continue anyway, this shouldn't prevent playback
-        }
-
-        db.query_row(
-            "SELECT player_command FROM settings WHERE id = 1",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or_else(|_| crate::settings::detect_default_player())
-    }; // Release the database lock here
-
-    let mut command_parts = player_command.split_whitespace();
-    let default_player = crate::settings::detect_default_player();
-    let command = command_parts.next().unwrap_or(&default_player);
-    let args = command_parts.collect::<Vec<&str>>();
-
-    // Try to spawn the external player
-    #[cfg(target_os = "windows")]
-    let spawn_result = Command::new(command)
-        .args(args)
-        .arg(&channel.url)
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag to hide CMD window
-        .spawn();
-    
-    #[cfg(not(target_os = "windows"))]
-    let spawn_result = Command::new(command)
-        .args(args)
-        .arg(&channel.url)
-        .spawn();
-    
-    match spawn_result {
-        Ok(mut child) => {
-            println!("Successfully launched player for channel: {}", channel.name);
-
-            // Wait a bit to see if the player exits quickly (indicating failure)
-            time::sleep(Duration::from_millis(3000)).await;
-
-            // Check if the process is still running
-            match child.try_wait() {
-                Ok(Some(exit_status)) => {
-                    // Process has exited
-                    if exit_status.success() {
-                        println!("Player exited successfully for channel: {}", channel.name);
-                        Ok(())
-                    } else {
-                        eprintln!(
-                            "Player exited with error for channel: {} (exit code: {:?})",
-                            channel.name,
-                            exit_status.code()
-                        );
-                        Err("Player failed to play the channel".to_string())
-                    }
-                }
-                Ok(None) => {
-                    // Process is still running, assume success
-                    println!("Player is still running for channel: {}", channel.name);
-                    Ok(())
-                }
-                Err(e) => {
-                    eprintln!(
-                        "Failed to check player status for channel {}: {}",
-                        channel.name, e
-                    );
-                    // If we can't check the status, assume it's working
-                    Ok(())
-                }
-            }
-        }
-        Err(e) => {
-            eprintln!("Failed to launch video player '{}': {}", command, e);
-            Err(format!("Failed to launch video player: {}", e))
-        }
-    }
-}
 
 // NEW ASYNC COMMANDS
 #[tauri::command]

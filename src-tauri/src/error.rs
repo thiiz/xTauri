@@ -59,13 +59,6 @@ pub enum TolloError {
     #[error("Search cache error: {reason}")]
     SearchCache { reason: String },
     
-    // External process errors
-    #[error("Failed to execute external player: {player}")]
-    ExternalPlayer { player: String },
-    
-    #[error("Command execution failed: {command}")]
-    CommandExecution { command: String },
-    
     // Configuration errors
     #[error("Configuration error: {reason}")]
     Configuration { reason: String },
@@ -286,7 +279,6 @@ impl TolloError {
             TolloError::FileDownload { .. } => "Failed to download file. Please check your connection and try again.".to_string(),
             TolloError::DataDirectoryAccess => "Cannot access application data directory. Please check permissions.".to_string(),
             TolloError::M3uParsing { .. } => "Invalid playlist format. Please check the playlist file.".to_string(),
-            TolloError::ExternalPlayer { .. } => "Failed to launch media player. Please check player installation.".to_string(),
             TolloError::InvalidUrl { .. } => "Invalid URL format. Please check the URL and try again.".to_string(),
             TolloError::Timeout { .. } => "Operation timed out. Please try again.".to_string(),
             TolloError::NotFound { .. } => "Requested item not found.".to_string(),
@@ -309,7 +301,6 @@ impl TolloError {
             TolloError::FileSystem(_) | TolloError::DirectoryCreation { .. } | TolloError::DataDirectoryAccess | TolloError::FileRead { .. } | TolloError::FileWrite { .. } => "filesystem",
             TolloError::M3uParsing { .. } | TolloError::UrlParsing { .. } | TolloError::RegexError { .. } => "parsing",
             TolloError::Cache { .. } | TolloError::ImageCache { .. } | TolloError::SearchCache { .. } => "cache",
-            TolloError::ExternalPlayer { .. } | TolloError::CommandExecution { .. } => "external",
             TolloError::Configuration { .. } | TolloError::InvalidSetting { .. } => "configuration",
             TolloError::InvalidChannelId { .. } | TolloError::InvalidPlaylistId { .. } | TolloError::InvalidUrl { .. } => "validation",
             TolloError::LockAcquisition { .. } | TolloError::Timeout { .. } | TolloError::Cancelled { .. } => "concurrency",
