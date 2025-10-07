@@ -244,13 +244,14 @@ export function useKeyboardNavigation({
           setSelectedChannel(listItems[focusedIndex] as Channel);
         }
         togglePlayPause();
-      } else if (e.key === "Enter" || e.key === "o") {
+      } else if (e.key === "Enter") {
         if (
           activeTab === "channels" ||
           activeTab === "favorites" ||
           activeTab === "history"
         ) {
-          handlePlayInExternalPlayer(listItems[focusedIndex] as Channel);
+          // Select the channel to play in the internal player
+          setSelectedChannel(listItems[focusedIndex] as Channel);
         } else if (activeTab === "groups") {
           handleSelectGroup(listItems[focusedIndex] as string);
         }
