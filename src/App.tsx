@@ -1,30 +1,28 @@
-import { invoke } from "@tauri-apps/api/core";
 import Hls from "hls.js";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Help from "./components/Help";
 import MainContent from "./components/MainContent";
 import NavigationSidebar from "./components/NavigationSidebar";
+import ProfileManager from "./components/ProfileManager";
 import Settings from "./components/Settings";
 
 import "./App.css";
 import type { Channel } from "./components/ChannelList";
+import ContentDetails from "./components/ContentDetails";
 import MovieGrid from "./components/MovieGrid";
 import SeriesBrowser from "./components/SeriesBrowser";
 import VideoPlayerWrapper, { type ContentItem } from "./components/VideoPlayerWrapper";
-import { useChannelSearch } from "./hooks/useChannelSearch";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
-import { useSavedFilters } from "./hooks/useSavedFilters";
 import {
   GroupDisplayMode,
   useChannelStore,
+  useProfileStore,
   useSearchStore,
   useSettingsStore,
   useUIStore,
-  type SavedFilter,
+  useXtreamContentStore,
 } from "./stores";
-import { asyncPlaylistStore } from "./stores/asyncPlaylistStore";
 import type { XtreamEpisode, XtreamMoviesListing, XtreamShow, XtreamShowListing } from "./types/types";
-import ContentDetails from "./components/ContentDetails";
 
 function App() {
   // Zustand store hooks
@@ -34,17 +32,11 @@ function App() {
     groups,
     history,
     selectedChannel,
-    selectedChannelListId,
     setChannels,
     setSelectedChannel,
-    setSelectedChannelListId,
-    setIsLoadingChannelList,
     toggleFavorite,
     playInExternalPlayer,
-    // NEW: Async operations
-    fetchChannelsAsync,
     fetchFavoritesAsync,
-    fetchGroupsAsync,
     fetchHistoryAsync,
   } = useChannelStore();
 
@@ -55,13 +47,11 @@ function App() {
     groupDisplayMode,
     enabledGroups,
     groupSearchTerm,
-    skipSearchEffect,
     setActiveTab,
     setFocusedIndex,
     setSelectedGroup,
     setGroupDisplayMode,
     setGroupSearchTerm,
-    setSkipSearchEffect,
     fetchEnabledGroups,
     selectAllGroups,
     unselectAllGroups,
@@ -69,6 +59,12 @@ function App() {
   } = useUIStore();
 
   const { searchQuery, setSearchQuery, clearSearch } = useSearchStore();
+  const { activeProfile } = useProfileStore();
+  const {
+    channels: xtreamChannels,
+    fetchChannels: fetchXtreamChannels,
+    fetchChannelCategories,
+  } = useXtreamContentStore();
 
   // Get settings
   const { enablePreview, fetchEnablePreview, autoplay } = useSettingsStore();
@@ -80,159 +76,50 @@ function App() {
   // State for Xtream content playback
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
 
-  // Custom hooks (keeping existing functionality)
-  const { debouncedSearchQuery, searchChannels } = useChannelSearch(
-    selectedChannelListId,
-  );
-  const { savedFilters, saveFilter } = useSavedFilters(selectedChannelListId);
-
   // Fetch settings on app load
   useEffect(() => {
     fetchEnablePreview();
   }, [fetchEnablePreview]);
 
-  // Load default channel list on app startup
+  // Load Xtream content when active profile changes
   useEffect(() => {
-    const loadDefaultChannelList = async () => {
-      try {
-        const channelLists = await invoke<
-          {
-            id: number;
-            name: string;
-            source: string;
-            is_default: boolean;
-            last_fetched: number | null;
-          }[]
-        >("get_channel_lists");
-        const defaultList = channelLists.find((list) => list.is_default);
-        if (defaultList && selectedChannelListId === null) {
-          // Set loading state immediately for initial app load
-          setIsLoadingChannelList(true);
-          setSkipSearchEffect(true);
-
-          // Clear current data to show loading state immediately
-          setChannels([]);
-          setSelectedGroup(null);
-          setFocusedIndex(0);
-
-          // Make sure user is on channels tab to see the loading screen
-          setActiveTab("channels");
-
-          // Give React a moment to render the loading screen before starting heavy operations
-          setTimeout(() => {
-            startTransition(() => {
-              setSelectedChannelListId(defaultList.id);
-            });
-          }, 50);
-        }
-      } catch (error) {
-        console.error("Failed to load default channel list:", error);
-        setIsLoadingChannelList(false);
-        setSkipSearchEffect(false);
-      }
-    };
-
-    loadDefaultChannelList();
-  }, []); // Only run once on mount
-
-  async function syncGroupsForChannelList(
-    channelListId: number,
-    allGroups: string[],
-  ) {
-    await invoke("sync_channel_list_groups", {
-      channelListId,
-      groups: allGroups,
-    });
-  }
-
-  // Trigger search when debounced query changes
-  useEffect(() => {
-    if (skipSearchEffect) return;
-
-    const performSearch = async () => {
-      const searchedChannels = await searchChannels(debouncedSearchQuery);
-      setChannels(searchedChannels);
-    };
-    performSearch();
-  }, [debouncedSearchQuery, selectedChannelListId, skipSearchEffect]);
-
-  useEffect(() => {
-    const loadChannelListData = async () => {
-      if (selectedChannelListId === null) {
-        setIsLoadingChannelList(false);
-        setSkipSearchEffect(false);
+    const loadXtreamContent = async () => {
+      if (!activeProfile) {
+        setChannels([]);
         return;
       }
 
-      // Skip search effect during channel list loading
-      setSkipSearchEffect(true);
-
       try {
-        // Use setTimeout to break up the work and keep UI responsive
-        const performStep = (step: () => Promise<void>) => {
-          return new Promise<void>((resolve) => {
-            setTimeout(async () => {
-              await step();
-              resolve();
-            }, 10); // Small delay to allow UI updates
-          });
-        };
+        // Fetch channel categories first
+        await fetchChannelCategories(activeProfile.id);
 
-        // Step 1: Fetch core data with async progress
-        await performStep(async () => {
-          await fetchChannelsAsync(selectedChannelListId);
-          await fetchFavoritesAsync();
-        });
+        // Fetch all channels
+        await fetchXtreamChannels(activeProfile.id);
 
-        // Step 2: Fetch groups and history with async operations
-        await performStep(async () => {
-          await fetchGroupsAsync(selectedChannelListId);
-          await fetchHistoryAsync();
-        });
-
-        // Step 3: Handle group setup
-        await performStep(async () => {
-          // Get all groups for this channel list
-          const fetchedGroups = await invoke<string[]>("get_groups", {
-            id: selectedChannelListId,
-          });
-
-          // Sync groups with database (adds new groups, removes deleted ones)
-          await syncGroupsForChannelList(selectedChannelListId, fetchedGroups);
-
-          // Load enabled groups for this channel list
-          const currentEnabledGroups = await fetchEnabledGroups(
-            selectedChannelListId,
-          );
-
-          // Auto-enable all groups if none are enabled (new or empty list)
-          if (currentEnabledGroups.length === 0 && fetchedGroups.length > 0) {
-            console.log(
-              `Auto-enabling all ${fetchedGroups.length} groups for new channel list`,
-            );
-            // Use bulk operation instead of individual calls to avoid UI blocking
-            await invoke("enable_all_groups", {
-              channelListId: selectedChannelListId,
-              groups: fetchedGroups,
-            });
-            // Refresh enabled groups to get the updated list
-            await fetchEnabledGroups(selectedChannelListId);
-          }
-
-          // Reset UI state for new channel list
-          setGroupDisplayMode(GroupDisplayMode.EnabledGroups);
-          setSelectedGroup(null);
-        });
+        // Load favorites and history
+        await fetchFavoritesAsync();
+        await fetchHistoryAsync();
       } catch (error) {
-        console.error("Failed to load channel list data:", error);
-      } finally {
-        setIsLoadingChannelList(false);
-        setSkipSearchEffect(false);
+        console.error("Failed to load Xtream content:", error);
       }
     };
 
-    loadChannelListData();
-  }, [selectedChannelListId]);
+    loadXtreamContent();
+  }, [activeProfile]);
+
+  // Sync Xtream channels to channel store
+  useEffect(() => {
+    if (xtreamChannels.length > 0) {
+      // Convert Xtream channels to Channel format
+      const convertedChannels: Channel[] = xtreamChannels.map(ch => ({
+        name: ch.name,
+        url: ch.url || '',
+        group_title: ch.category_id,
+        tvg_logo: ch.stream_icon,
+      }));
+      setChannels(convertedChannels);
+    }
+  }, [xtreamChannels]);
 
   useEffect(() => {
     if (hlsRef.current) {
@@ -343,80 +230,28 @@ function App() {
     }
   })();
 
-  // Saved filter handlers
-  const handleSaveFilter = async (
-    slotNumber: number,
-    searchQuery: string,
-    selectedGroup: string | null,
-    name: string,
-  ): Promise<boolean> => {
-    const success = await saveFilter(
-      slotNumber,
-      searchQuery,
-      selectedGroup,
-      name,
-    );
-    if (success) {
-      // Show some feedback to user (you could add a toast here)
-      console.log(`Saved filter to slot ${slotNumber}: ${name}`);
-    }
-    return success;
-  };
-
-  const handleApplyFilter = (filter: SavedFilter) => {
-    // Apply the search query
-    setSearchQuery(filter.search_query);
-
-    // Apply the group selection and set appropriate display mode
-    setSelectedGroup(filter.selected_group);
-
-    // If the filter has a selected group, switch to AllGroups mode to make the group filter active
-    // If no group is selected, use EnabledGroups mode
-    if (filter.selected_group) {
-      setGroupDisplayMode(GroupDisplayMode.AllGroups);
-    } else {
-      setGroupDisplayMode(GroupDisplayMode.EnabledGroups);
-    }
-
-    // Switch to channels tab to see the results
-    setActiveTab("channels");
-    setFocusedIndex(0);
-  };
-
   const handleClearGroupSearch = () => {
     setGroupSearchTerm("");
-    setFocusedIndex(0); // Reset focus when clearing search
+    setFocusedIndex(0);
   };
 
   const handleClearAllFilters = () => {
-    // Clear search query
     clearSearch();
-    // Clear group selection
     setSelectedGroup(null);
-    // Reset to enabled groups mode
     setGroupDisplayMode(GroupDisplayMode.EnabledGroups);
-    // Switch to channels tab
     setActiveTab("channels");
     setFocusedIndex(0);
   };
 
-  // Channel list management
-  const handleRefreshCurrentChannelList = () => {
-    if (selectedChannelListId !== null) {
-      asyncPlaylistStore.refreshPlaylistAsync(selectedChannelListId);
-    }
-  };
-
-  // Group management handlers
   const handleSelectAllGroups = () => {
-    if (selectedChannelListId !== null) {
-      selectAllGroups(groups, selectedChannelListId);
+    if (activeProfile) {
+      selectAllGroups(groups, activeProfile.id);
     }
   };
 
   const handleUnselectAllGroups = () => {
-    if (selectedChannelListId !== null) {
-      unselectAllGroups(groups, selectedChannelListId);
+    if (activeProfile) {
+      unselectAllGroups(groups, activeProfile.id);
     }
   };
 
@@ -426,14 +261,14 @@ function App() {
         ? GroupDisplayMode.AllGroups
         : GroupDisplayMode.EnabledGroups;
     setGroupDisplayMode(newMode);
-    setFocusedIndex(0); // Reset focus when switching modes
+    setFocusedIndex(0);
   };
 
   const handleToggleCurrentGroupSelection = () => {
-    if (activeTab === "groups" && selectedChannelListId !== null) {
+    if (activeTab === "groups" && activeProfile) {
       const currentGroup = listItems[focusedIndex] as string | null;
       if (currentGroup) {
-        toggleGroupEnabled(currentGroup, selectedChannelListId);
+        toggleGroupEnabled(currentGroup, activeProfile.id);
       }
     }
   };
@@ -482,7 +317,6 @@ function App() {
       }
     };
     setSelectedXtreamContent(contentItem);
-    // Clear any selected channel to avoid conflicts
     setSelectedChannel(null);
   };
 
@@ -491,7 +325,6 @@ function App() {
   };
 
   const handleSeriesSelect = (series: XtreamShowListing) => {
-    // For series selection, we don't play anything yet, just show details
     console.log('Series selected:', series.name);
   };
 
@@ -500,7 +333,6 @@ function App() {
       type: 'xtream-series',
       data: {
         ...series,
-        // Add episode-specific data for URL generation
         stream_id: parseInt(episode.id),
       } as any,
       metadata: {
@@ -513,7 +345,6 @@ function App() {
       }
     };
     setSelectedXtreamContent(contentItem);
-    // Clear any selected channel to avoid conflicts
     setSelectedChannel(null);
   };
 
@@ -534,13 +365,13 @@ function App() {
     handleSelectGroup,
     handleToggleFavorite,
     handlePlayInExternalPlayer,
-    savedFilters,
-    onSaveFilter: handleSaveFilter,
-    onApplyFilter: handleApplyFilter,
+    savedFilters: [],
+    onSaveFilter: async () => false,
+    onApplyFilter: () => { },
     clearSearch,
     clearGroupSearch: handleClearGroupSearch,
     clearAllFilters: handleClearAllFilters,
-    refreshCurrentChannelList: handleRefreshCurrentChannelList,
+    refreshCurrentChannelList: () => { },
     selectAllGroups: handleSelectAllGroups,
     unselectAllGroups: handleUnselectAllGroups,
     toggleGroupDisplayMode: handleToggleGroupDisplayMode,
@@ -549,6 +380,26 @@ function App() {
     toggleFullscreen: handleToggleFullscreen,
     togglePlayPause: handleTogglePlayPause,
   });
+
+  // Show profile manager if no active profile
+  if (!activeProfile && activeTab !== "profiles" && activeTab !== "settings" && activeTab !== "help") {
+    return (
+      <div className="container">
+        <NavigationSidebar />
+        <div className="main-content">
+          <div className="settings-full-width">
+            <div className="section-header">
+              <h2 className="section-title">Welcome to Tollo</h2>
+              <p className="section-subtitle">Add your Xtream Codes profile to get started</p>
+            </div>
+            <div className="settings-container">
+              <ProfileManager />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -575,6 +426,16 @@ function App() {
             </div>
             <div className="settings-container">
               <Help />
+            </div>
+          </div>
+        ) : activeTab === "profiles" ? (
+          <div className="settings-full-width">
+            <div className="section-header">
+              <h2 className="section-title">Xtream Profiles</h2>
+              <p className="section-subtitle">Manage your Xtream Codes accounts</p>
+            </div>
+            <div className="settings-container">
+              <ProfileManager />
             </div>
           </div>
         ) : activeTab === "movies" ? (
