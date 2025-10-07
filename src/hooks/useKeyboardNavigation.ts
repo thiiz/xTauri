@@ -64,7 +64,6 @@ export function useKeyboardNavigation({
   setActiveTab,
   handleSelectGroup,
   handleToggleFavorite,
-  handlePlayInExternalPlayer,
   savedFilters,
   onSaveFilter,
   onApplyFilter,
