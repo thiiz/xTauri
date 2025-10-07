@@ -8,7 +8,6 @@ import {
   useXtreamContentStore,
 } from "../stores";
 import ChannelList, { type Channel } from "./ChannelList";
-import ChannelLoadingProgress from "./ChannelLoadingProgress";
 import GroupList from "./GroupList";
 import MovieGrid from "./MovieGrid";
 import ProfileManager from "./ProfileManager";
@@ -37,17 +36,13 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     favorites,
     groups,
     history,
-    isLoadingChannelList,
-    selectedChannelListId,
-    loadingProgress,
-    isAsyncLoading,
   } = useChannelStore();
 
   const { activeTab } = useUIStore();
 
   const { searchQuery, isSearching, setSearchQuery } = useSearchStore();
 
-  const { channelListName, getChannelListName } = useSettingsStore();
+  const { channelListName } = useSettingsStore();
 
   const { activeProfile } = useProfileStore();
 
@@ -58,11 +53,8 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     fetchChannels: fetchXtreamChannels
   } = useXtreamContentStore();
 
-  useEffect(() => {
-    if (selectedChannelListId !== null) {
-      getChannelListName(selectedChannelListId);
-    }
-  }, [selectedChannelListId, getChannelListName]);
+  // selectedChannelListId was removed from channelStore
+  // Channel list name functionality is disabled for now
 
   // Load Xtream channels when profile becomes active
   useEffect(() => {
@@ -205,21 +197,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
   const renderContent = () => {
     switch (activeTab) {
       case "channels":
-        // Show loading progress for async operations
-        if (isAsyncLoading || loadingProgress) {
-          return (
-            <>
-              <ChannelLoadingProgress />
-              {/* Still show the old loading screen if no channels are loaded yet */}
-              {filteredChannels.length === 0 && <LoadingChannelList />}
-            </>
-          );
-        }
-
-        // Show legacy loading screen for non-async operations
-        if (isLoadingChannelList) {
-          return <LoadingChannelList />;
-        }
+        // Loading functionality was removed
 
         return (
           <>

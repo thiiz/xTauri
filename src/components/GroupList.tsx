@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useUIStore, useChannelStore } from "../stores";
+import { useEffect, useRef, useState } from "react";
+import { useChannelStore, useUIStore } from "../stores";
 import { GroupDisplayMode } from "../stores/uiStore";
 
 const GROUPS_PER_PAGE = 200; // Match channels paging for consistency
@@ -27,7 +27,7 @@ export default function GroupList() {
     setActiveTab,
   } = useUIStore();
 
-  const { groups, selectedChannelListId } = useChannelStore();
+  const { groups } = useChannelStore();
 
   // Filter groups based on search term
   const filteredGroups = groups.filter((group: string) =>
@@ -166,23 +166,20 @@ export default function GroupList() {
   };
 
   const handleSelectAllGroups = () => {
-    if (selectedChannelListId) {
-      selectAllGroups(groups, selectedChannelListId);
-    }
+    // selectedChannelListId was removed, using default value
+    selectAllGroups(groups, 1);
     setDropdownOpen(false);
   };
 
   const handleUnselectAllGroups = () => {
-    if (selectedChannelListId) {
-      unselectAllGroups(groups, selectedChannelListId);
-    }
+    // selectedChannelListId was removed, using default value
+    unselectAllGroups(groups, 1);
     setDropdownOpen(false);
   };
 
   const handleToggleGroupEnabled = (group: string) => {
-    if (selectedChannelListId) {
-      toggleGroupEnabled(group, selectedChannelListId);
-    }
+    // selectedChannelListId was removed, using default value
+    toggleGroupEnabled(group, 1);
   };
 
   // Pagination handlers

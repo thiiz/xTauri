@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useChannelStore, useSettingsStore } from "../../stores";
+import { useEffect, useState } from "react";
+import { useSettingsStore } from "../../stores";
 import {
   asyncPlaylistStore,
   PlaylistFetchStatus,
 } from "../../stores/asyncPlaylistStore";
 import type { ChannelList } from "../../types/settings";
 import {
-  ListIcon,
-  EditIcon,
-  TrashIcon,
-  RefreshIcon,
   CheckIcon,
-  XIcon,
-  StarIcon,
+  EditIcon,
+  ListIcon,
   LoadingIcon,
+  RefreshIcon,
+  StarIcon,
+  TrashIcon,
+  XIcon,
 } from "./SettingsIcons";
 
 interface ChannelListsSettingsProps {
@@ -46,7 +46,6 @@ export function ChannelListsSettings({
 
   // Get data from stores
   const { channelLists } = useSettingsStore();
-  const { selectedChannelListId } = useChannelStore();
 
   // Subscribe to async playlist status updates
   useEffect(() => {
@@ -368,7 +367,6 @@ export function ChannelListsSettings({
                         onClick={() => handleSelectList(list.id)}
                         disabled={
                           loadingLists.has(list.id) ||
-                          selectedChannelListId === list.id ||
                           selectingList === list.id ||
                           isAsyncOperation
                         }

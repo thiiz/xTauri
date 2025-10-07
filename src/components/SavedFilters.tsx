@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+  GroupDisplayMode,
+  useFilterStore,
   useSearchStore,
   useUIStore,
-  useFilterStore,
-  useChannelStore,
-  GroupDisplayMode,
-  type SavedFilter,
+  type SavedFilter
 } from "../stores";
 
 export default function SavedFilters() {
@@ -18,12 +17,11 @@ export default function SavedFilters() {
     setFocusedIndex,
   } = useUIStore();
   const { savedFilters, loadSavedFilters } = useFilterStore();
-  const { selectedChannelListId } = useChannelStore();
 
-  // Load saved filters when channel list changes
+  // Load saved filters on mount
   useEffect(() => {
-    loadSavedFilters(selectedChannelListId);
-  }, [selectedChannelListId, loadSavedFilters]);
+    loadSavedFilters(null);
+  }, [loadSavedFilters]);
 
   // Reset to first page when filters change
   useEffect(() => {
