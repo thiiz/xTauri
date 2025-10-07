@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import Hls from "hls.js";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { useContentPlayback } from "../hooks/useContentPlayback";
 import { useChannelStore, useSettingsStore } from "../stores";
@@ -7,7 +8,6 @@ import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import type { EnhancedEPGListing, XtreamChannel, XtreamMoviesListing, XtreamShow } from "../types/types";
 import type { Channel } from "./ChannelList";
 import { PlayIcon } from "./Icons";
-import Hls from "hls.js";
 
 interface ContentItem {
   type: 'channel' | 'xtream-channel' | 'xtream-movie' | 'xtream-series';
@@ -197,21 +197,30 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
       const video = ref.current;
       if (!video) return;
 
-      // Check if this is an HLS stream (more comprehensive detection)
-      const isHlsUrl = streamUrl.includes('.m3u8') ||
-        streamUrl.includes('m3u8') ||
-        streamUrl.includes('playlist.m3u8') ||
-        streamUrl.includes('index.m3u8') ||
-        activeContent?.type === 'channel' ||
-        activeContent?.type === 'xtream-channel';
-      console.log('Stream URL:', streamUrl, 'Is HLS:', isHlsUrl, 'HLS Supported:', Hls.isSupported());
+      // Detect stream type - HLS (.m3u8), MPEG-TS (.ts), or direct video
+      const isM3u8 = streamUrl.includes('.m3u8') || streamUrl.includes('m3u8');
+      const isTsStream = streamUrl.includes('.ts') || streamUrl.endsWith('.ts');
+      const isLiveChannel = activeContent?.type === 'channel' || activeContent?.type === 'xtream-channel';
 
-      if (isHlsUrl && Hls.isSupported()) {
-        // Use HLS.js for .m3u8 streams when supported
+      // For .ts streams and live channels, we need HLS.js or special handling
+      const needsHlsJs = isM3u8 || isTsStream || isLiveChannel;
+
+      console.log('Stream URL:', streamUrl, 'Type:', { isM3u8, isTsStream, isLiveChannel, needsHlsJs });
+
+      if (needsHlsJs && Hls.isSupported()) {
+        // Use HLS.js for streaming content
         const hls = new Hls({
-          enableWorker: false, // Disable worker for better compatibility
-          lowLatencyMode: true, // Enable low latency for live streams
-          backBufferLength: 90, // Keep 90 seconds of back buffer
+          enableWorker: false,
+          lowLatencyMode: isLiveChannel,
+          backBufferLength: 90,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          // For .ts streams, we need to handle them as fMP4
+          progressive: isTsStream,
+          // Enable CORS for cross-origin streams
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            xhr.withCredentials = false;
+          }
         });
 
         hlsRef.current = hls;
@@ -220,8 +229,12 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           console.log('HLS manifest parsed successfully');
+          setCodecWarning(false);
           if (autoplay) {
-            video.play().catch(console.error);
+            video.play().catch(err => {
+              console.error('Autoplay failed:', err);
+              setCodecWarning(true);
+            });
           }
         });
 
@@ -238,37 +251,60 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
                 hls.recoverMediaError();
                 break;
               default:
-                console.log('Fatal error, trying direct video fallback');
+                console.log('Fatal error, cannot play stream');
+                setCodecWarning(true);
                 hls.destroy();
-                // Try direct video as fallback
-                video.src = streamUrl;
-                video.load();
                 break;
             }
           }
         });
 
-        // Clear codec warning on successful load
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setCodecWarning(false);
-        });
-
-      } else if (isHlsUrl && video.canPlayType('application/vnd.apple.mpegurl')) {
+      } else if (needsHlsJs && video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
+        console.log('Using native HLS support');
         video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => {
+        const handleLoadedMetadata = () => {
+          setCodecWarning(false);
           if (autoplay) video.play().catch(console.error);
-        });
-        video.addEventListener('error', () => setCodecWarning(true));
-        video.addEventListener('loadstart', () => setCodecWarning(false));
+        };
+        const handleError = () => {
+          console.error('Native HLS playback error');
+          setCodecWarning(true);
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('error', handleError);
+        video.load();
+
+        return () => {
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          video.removeEventListener('error', handleError);
+        };
+      } else if (!needsHlsJs) {
+        // Direct video streams (MP4, WebM, etc.)
+        console.log('Using direct video playback');
+        video.src = streamUrl;
+        const handleLoadedMetadata = () => {
+          setCodecWarning(false);
+          if (autoplay) video.play().catch(console.error);
+        };
+        const handleError = () => {
+          console.error('Direct video playback error');
+          setCodecWarning(true);
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('error', handleError);
+        video.load();
+
+        return () => {
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          video.removeEventListener('error', handleError);
+        };
       } else {
-        // Direct video streams (MP4, WebM, etc.) - no HLS needed
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => {
-          if (autoplay) video.play().catch(console.error);
-        });
-        video.addEventListener('error', () => setCodecWarning(true));
-        video.addEventListener('loadstart', () => setCodecWarning(false));
+        // HLS.js not supported and no native support
+        console.error('No HLS support available');
+        setCodecWarning(true);
       }
 
       // Cleanup function
@@ -278,7 +314,7 @@ const EnhancedVideoPlayer = forwardRef<HTMLVideoElement, EnhancedVideoPlayerProp
           hlsRef.current = null;
         }
       };
-    }, [streamUrl, autoplay, ref]);
+    }, [streamUrl, autoplay, ref, activeContent]);
 
     // Helper functions
     const getContentId = (content: ContentItem): string | null => {

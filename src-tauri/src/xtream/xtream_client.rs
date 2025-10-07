@@ -844,10 +844,11 @@ impl XtreamClient {
         if let Some(stream_id) = channel.get("stream_id") {
             if let Some(id_num) = stream_id.as_u64() {
                 // Generate streaming URL for the channel
+                // Use m3u8 for live channels to ensure browser compatibility
                 let stream_request = StreamURLRequest {
                     content_type: ContentType::Channel,
                     content_id: id_num.to_string(),
-                    extension: Some("ts".to_string()),
+                    extension: Some("m3u8".to_string()),
                 };
                 
                 if let Ok(stream_url) = self.generate_stream_url(&stream_request) {
@@ -1908,13 +1909,17 @@ impl XtreamClient {
     pub fn generate_stream_url(&self, request: &StreamURLRequest) -> Result<String> {
         let url = match request.content_type {
             ContentType::Channel => {
+                // Always use m3u8 for live channels to ensure browser compatibility
+                // .ts streams are not natively supported by browsers
+                let extension = request.extension.as_deref().unwrap_or("m3u8");
+                let extension = if extension == "ts" { "m3u8" } else { extension };
                 format!(
                     "{}/live/{}/{}/{}.{}",
                     self.base_url,
                     self.credentials.username,
                     self.credentials.password,
                     request.content_id,
-                    request.extension.as_deref().unwrap_or("m3u8")
+                    extension
                 )
             }
             ContentType::Movie => {
