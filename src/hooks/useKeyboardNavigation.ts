@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import type { Tab } from "../components/NavigationSidebar";
 import type { Channel } from "../components/ChannelList";
+import type { Tab } from "../components/NavigationSidebar";
 import type { SavedFilter } from "../stores";
 
 interface UseKeyboardNavigationProps {
@@ -19,7 +19,6 @@ interface UseKeyboardNavigationProps {
   setActiveTab: (tab: Tab) => void;
   handleSelectGroup: (group: string | null) => void;
   handleToggleFavorite: (channel: Channel) => void;
-  handlePlayInExternalPlayer: (channel: Channel) => void;
   // Saved filters functionality
   savedFilters: SavedFilter[];
   onSaveFilter: (

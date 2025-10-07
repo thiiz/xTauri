@@ -110,7 +110,10 @@ function App() {
         name: ch.name,
         url: ch.url || '',
         group_title: ch.category_id,
-        tvg_logo: ch.stream_icon,
+        logo: ch.stream_icon,
+        tvg_id: ch.epg_channel_id || '',
+        resolution: 'HD',
+        extra_info: '',
       }));
       setChannels(convertedChannels);
     }
@@ -232,13 +235,13 @@ function App() {
 
   const handleSelectAllGroups = () => {
     if (activeProfile) {
-      selectAllGroups(groups, activeProfile.id);
+      selectAllGroups(groups, parseInt(activeProfile.id));
     }
   };
 
   const handleUnselectAllGroups = () => {
     if (activeProfile) {
-      unselectAllGroups(groups, activeProfile.id);
+      unselectAllGroups(groups, parseInt(activeProfile.id));
     }
   };
 
@@ -255,7 +258,7 @@ function App() {
     if (activeTab === "groups" && activeProfile) {
       const currentGroup = listItems[focusedIndex] as string | null;
       if (currentGroup) {
-        toggleGroupEnabled(currentGroup, activeProfile.id);
+        toggleGroupEnabled(currentGroup, parseInt(activeProfile.id));
       }
     }
   };
@@ -294,13 +297,13 @@ function App() {
       data: movie,
       metadata: {
         title: movie.title || movie.name,
-        description: movie.plot,
-        duration: movie.episode_run_time,
-        genre: movie.genre,
-        rating: movie.rating,
-        year: movie.year,
-        cast: movie.cast,
-        director: movie.director,
+        description: movie.plot || undefined,
+        duration: movie.episode_run_time || undefined,
+        genre: movie.genre || undefined,
+        rating: movie.rating || undefined,
+        year: movie.year || undefined,
+        cast: movie.cast || undefined,
+        director: movie.director || undefined,
       }
     };
     setSelectedXtreamContent(contentItem);
