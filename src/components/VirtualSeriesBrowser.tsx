@@ -203,136 +203,166 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
 
     return (
       <div className="virtual-series-details-container">
-        <div className="series-details-header">
-          <button className="back-button" onClick={handleBackToGrid}>
-            ← Back to Series
-          </button>
-          <h1 className="series-title">{selectedSeries.name}</h1>
-        </div>
-
-        <div className="series-info-section">
-          <div className="series-poster">
-            <CachedImage src={selectedSeries.cover} alt={selectedSeries.name} className="series-poster-image" />
-          </div>
-
-          <div className="series-meta">
-            <div className="series-meta-grid">
-              <div className="meta-item">
-                <span className="meta-label">Year:</span>
-                <span className="meta-value">{formatYear(selectedSeries.year)}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Rating:</span>
-                <span className="meta-value">★ {formatRating(selectedSeries.rating)}</span>
-              </div>
-              {selectedSeries.genre && (
-                <div className="meta-item">
-                  <span className="meta-label">Genre:</span>
-                  <span className="meta-value">{selectedSeries.genre}</span>
-                </div>
-              )}
-              {selectedSeries.episode_run_time && (
-                <div className="meta-item">
-                  <span className="meta-label">Episode Runtime:</span>
-                  <span className="meta-value">{formatEpisodeRuntime(selectedSeries.episode_run_time)}</span>
-                </div>
-              )}
-              {selectedSeries.director && (
-                <div className="meta-item">
-                  <span className="meta-label">Director:</span>
-                  <span className="meta-value">{selectedSeries.director}</span>
-                </div>
-              )}
-              {selectedSeries.cast && (
-                <div className="meta-item">
-                  <span className="meta-label">Cast:</span>
-                  <span className="meta-value">{selectedSeries.cast}</span>
-                </div>
-              )}
-            </div>
-
-            {selectedSeries.plot && (
-              <div className="series-plot">
-                <h3>Plot</h3>
-                <p>{selectedSeries.plot}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="season-selection">
-          <h3>Seasons</h3>
-          <div className="season-tabs">
-            {seriesDetails.seasons.map((season) => (
-              <button
-                key={season.season_number}
-                className={`season-tab ${selectedSeason?.season_number === season.season_number ? 'active' : ''}`}
-                onClick={() => setSelectedSeason(season)}
-              >
-                Season {season.season_number}
-                <span className="episode-count">({season.episode_count} episodes)</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {selectedSeason && (
-          <div className="episodes-section">
-            <h3>Season {selectedSeason.season_number} Episodes</h3>
-            <Virtuoso
-              style={{ height: '600px' }}
-              totalCount={seasonEpisodes.length}
-              itemContent={(index) => {
-                const episode = seasonEpisodes[index];
-                return (
-                  <div className="virtual-episode-item">
-                    <div className="episode-thumbnail">
-                      <CachedImage
-                        src={episode.info.movie_image || selectedSeries.cover}
-                        alt={episode.title}
-                        className="episode-image"
-                        lazy={true}
-                        rootMargin="100px"
-                      />
-                      <button
-                        className="episode-play-button"
-                        onClick={() => handleEpisodePlay(episode)}
-                        title="Play episode"
-                      >
-                        ▶
-                      </button>
-                    </div>
-
-                    <div className="episode-info">
-                      <div className="episode-header">
-                        <span className="episode-number">E{episode.episode_num}</span>
-                        <h4 className="episode-title">{episode.title}</h4>
-                      </div>
-
-                      <div className="episode-meta">
-                        {episode.info.air_date && (
-                          <span className="episode-date">{episode.info.air_date}</span>
-                        )}
-                        {episode.info.duration && (
-                          <span className="episode-duration">{episode.info.duration}</span>
-                        )}
-                        {episode.info.rating && (
-                          <span className="episode-rating">★ {episode.info.rating}</span>
-                        )}
-                      </div>
-
-                      {episode.info.plot && (
-                        <p className="episode-plot">{episode.info.plot}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              }}
-              overscan={5}
-              className="virtual-episodes-list"
+        {/* Hero Section with Background */}
+        <div className="series-hero-section">
+          <div className="series-hero-backdrop">
+            <CachedImage
+              src={selectedSeries.cover}
+              alt=""
+              className="series-backdrop-image"
             />
+            <div className="series-hero-overlay"></div>
           </div>
-        )}
+
+          <div className="series-hero-content">
+            <button className="back-button-hero" onClick={handleBackToGrid}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+
+            <div className="series-hero-info">
+              <div className="series-poster-compact">
+                <CachedImage src={selectedSeries.cover} alt={selectedSeries.name} className="series-poster-image" />
+              </div>
+
+              <div className="series-hero-details">
+                <h1 className="series-hero-title">{selectedSeries.name}</h1>
+
+                <div className="series-hero-meta">
+                  {selectedSeries.year && (
+                    <span className="meta-badge">{formatYear(selectedSeries.year)}</span>
+                  )}
+                  {selectedSeries.rating && selectedSeries.rating !== '0' && (
+                    <span className="meta-badge rating">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      {formatRating(selectedSeries.rating)}
+                    </span>
+                  )}
+                  {selectedSeries.genre && (
+                    <span className="meta-badge genre">{selectedSeries.genre}</span>
+                  )}
+                  {selectedSeries.episode_run_time && (
+                    <span className="meta-badge">{formatEpisodeRuntime(selectedSeries.episode_run_time)}</span>
+                  )}
+                </div>
+
+                {selectedSeries.plot && (
+                  <p className="series-hero-plot">{selectedSeries.plot}</p>
+                )}
+
+                {(selectedSeries.director || selectedSeries.cast) && (
+                  <div className="series-hero-credits">
+                    {selectedSeries.director && (
+                      <div className="credit-item">
+                        <span className="credit-label">Director:</span>
+                        <span className="credit-value">{selectedSeries.director}</span>
+                      </div>
+                    )}
+                    {selectedSeries.cast && (
+                      <div className="credit-item">
+                        <span className="credit-label">Cast:</span>
+                        <span className="credit-value">{selectedSeries.cast}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seasons & Episodes Section */}
+        <div className="series-content-section">
+          <div className="season-selector">
+            <h2 className="section-title">Episodes</h2>
+            <div className="season-dropdown-wrapper">
+              <select
+                className="season-dropdown"
+                value={selectedSeason?.season_number || ''}
+                onChange={(e) => {
+                  const season = seriesDetails.seasons.find(s => s.season_number === parseInt(e.target.value));
+                  if (season) setSelectedSeason(season);
+                }}
+              >
+                {seriesDetails.seasons.map((season) => (
+                  <option key={season.season_number} value={season.season_number}>
+                    Season {season.season_number} ({season.episode_count} episodes)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {selectedSeason && (
+            <div className="episodes-grid">
+              <Virtuoso
+                style={{ height: '600px' }}
+                totalCount={seasonEpisodes.length}
+                itemContent={(index) => {
+                  const episode = seasonEpisodes[index];
+                  return (
+                    <div className="episode-card" onClick={() => handleEpisodePlay(episode)}>
+                      <div className="episode-card-thumbnail">
+                        <CachedImage
+                          src={episode.info.movie_image || selectedSeries.cover}
+                          alt={episode.title}
+                          className="episode-card-image"
+                          lazy={true}
+                          rootMargin="100px"
+                        />
+                        <div className="episode-card-overlay">
+                          <button
+                            className="episode-card-play"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEpisodePlay(episode);
+                            }}
+                            title="Play episode"
+                          >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="episode-card-number">
+                          {episode.episode_num}
+                        </div>
+                      </div>
+
+                      <div className="episode-card-content">
+                        <h3 className="episode-card-title">{episode.title}</h3>
+
+                        <div className="episode-card-meta">
+                          {episode.info.duration && (
+                            <span className="episode-card-duration">{episode.info.duration}</span>
+                          )}
+                          {episode.info.rating && (
+                            <span className="episode-card-rating">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              {episode.info.rating}
+                            </span>
+                          )}
+                        </div>
+
+                        {episode.info.plot && (
+                          <p className="episode-card-plot">{episode.info.plot}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }}
+                overscan={3}
+                className="episodes-list"
+              />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
