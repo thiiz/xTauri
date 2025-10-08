@@ -86,48 +86,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1.5rem;
   text-align: center;
-  animation: fadeIn 0.3s ease-in;
+  animation: fadeIn 0.2s ease;
 }
 
 .loading-indicator {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
 }
 
 .error-indicator {
   color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
   margin: 1rem;
+  font-size: 14px;
 }
 
 .pagination-info {
-  padding: 0.75rem 1.5rem;
-  background: var(--background-secondary);
-  border-top: 1px solid var(--border-color);
+  padding: 0.625rem 1.25rem;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   text-align: center;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .filter-indicator {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  background: #eff6ff;
-  border-left: 4px solid #3b82f6;
+  padding: 0.625rem 1.25rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
   margin: 0.5rem 1rem;
   border-radius: 4px;
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.2s ease;
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
@@ -139,22 +141,24 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.875rem;
 }
 
 .filter-label {
-  font-weight: 600;
-  color: #1e40af;
+  font-weight: 500;
+  color: rgba(59, 130, 246, 0.8);
 }
 
 .filter-value {
   color: #3b82f6;
+  font-weight: 600;
 }
 
 .clear-filter-btn {
   background: transparent;
   border: none;
-  color: #6b7280;
-  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -163,20 +167,16 @@
 }
 
 .clear-filter-btn:hover {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
 }
 
 .clear-filter-btn:focus-visible {
   outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

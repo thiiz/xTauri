@@ -11,8 +11,6 @@ interface VirtualMovieGridProps {
   onMoviePlay?: (movie: XtreamMoviesListing) => void;
 }
 
-const ITEMS_PER_ROW = 6;
-
 export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: VirtualMovieGridProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<XtreamMoviesListing | null>(null);
@@ -93,29 +91,23 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
     handleMovieClick(movie);
   };
 
-  const formatRating = (rating: number): string => rating === 0 ? 'N/A' : rating.toString();
-  const formatYear = (year: string | null): string => year || 'Unknown';
+  const formatRating = (rating: number): string => rating === 0 ? 'N/A' : rating.toFixed(1);
+  const formatYear = (year: string | null): string => year || 'N/A';
   const formatRuntime = (runtime: number | null): string => {
-    if (!runtime) return 'Unknown';
+    if (!runtime) return '';
     const hours = Math.floor(runtime / 60);
     const minutes = runtime % 60;
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
-  const movieRows = useMemo(() => {
-    const rows = [];
-    for (let i = 0; i < displayMovies.length; i += ITEMS_PER_ROW) {
-      rows.push(displayMovies.slice(i, i + ITEMS_PER_ROW));
-    }
-    return rows;
-  }, [displayMovies]);
-
   const rowRenderer = useCallback((index: number) => {
-    const row = movieRows[index];
+    const startIdx = index * 6;
+    const endIdx = Math.min(startIdx + 6, displayMovies.length);
+    const rowMovies = displayMovies.slice(startIdx, endIdx);
 
     return (
       <div className="virtual-movie-row" role="list">
-        {row.map((movie) => (
+        {rowMovies.map((movie) => (
           <article
             key={movie.stream_id}
             className={`virtual-movie-card ${selectedMovie?.stream_id === movie.stream_id ? 'selected' : ''}`}
@@ -166,30 +158,19 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
 
             <div className="movie-info">
               <h3 className="movie-title">{movie.name}</h3>
-              <div className="movie-meta" aria-label="Movie metadata">
-                <span className="movie-year" aria-label={`Year ${formatYear(movie.year)}`}>
-                  {formatYear(movie.year)}
-                </span>
-                <span className="movie-rating" aria-label={`Rating ${formatRating(movie.rating)} out of 10`}>
-                  ★ {formatRating(movie.rating)}
-                </span>
-                {movie.episode_run_time && (
-                  <span className="movie-runtime" aria-label={`Runtime ${formatRuntime(movie.episode_run_time)}`}>
-                    {formatRuntime(movie.episode_run_time)}
-                  </span>
-                )}
+              <div className="movie-meta">
+                {movie.year && <span className="movie-year">{formatYear(movie.year)}</span>}
+                {movie.rating > 0 && <span className="movie-rating">★ {formatRating(movie.rating)}</span>}
+                {movie.episode_run_time && <span className="movie-runtime">{formatRuntime(movie.episode_run_time)}</span>}
               </div>
-              {movie.genre && (
-                <div className="movie-genre" aria-label={`Genre ${movie.genre}`}>
-                  {movie.genre}
-                </div>
-              )}
             </div>
           </article>
         ))}
       </div>
     );
-  }, [movieRows, selectedMovie]);
+  }, [displayMovies, selectedMovie, handleMovieClick, handleMoviePlay, handleShowDetails]);
+
+  const totalRows = Math.ceil(displayMovies.length / 6);
 
   return (
     <div className="virtual-movie-grid-container" role="region" aria-label="Movies browser">
@@ -257,9 +238,9 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
 
       <Virtuoso
         style={{ height: '100%' }}
-        totalCount={movieRows.length}
+        totalCount={totalRows}
         itemContent={rowRenderer}
-        overscan={3}
+        overscan={2}
         className="virtual-movie-grid"
       />
 
@@ -293,23 +274,12 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
                     <h1 className="movie-hero-title">{selectedMovie.name}</h1>
 
                     <div className="movie-hero-meta">
-                      {selectedMovie.year && (
-                        <span className="meta-badge">{formatYear(selectedMovie.year)}</span>
+                      {selectedMovie.year && <span className="meta-badge">{formatYear(selectedMovie.year)}</span>}
+                      {selectedMovie.rating > 0 && (
+                        <span className="meta-badge rating">★ {formatRating(selectedMovie.rating)}</span>
                       )}
-                      {selectedMovie.rating && selectedMovie.rating !== 0 && (
-                        <span className="meta-badge rating">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                          {formatRating(selectedMovie.rating)}
-                        </span>
-                      )}
-                      {selectedMovie.genre && (
-                        <span className="meta-badge genre">{selectedMovie.genre}</span>
-                      )}
-                      {selectedMovie.episode_run_time && (
-                        <span className="meta-badge">{formatRuntime(selectedMovie.episode_run_time)}</span>
-                      )}
+                      {selectedMovie.genre && <span className="meta-badge genre">{selectedMovie.genre}</span>}
+                      {selectedMovie.episode_run_time && <span className="meta-badge">{formatRuntime(selectedMovie.episode_run_time)}</span>}
                     </div>
 
                     {(selectedMovie.plot || movieDetails?.info?.plot) && (

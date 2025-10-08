@@ -11,8 +11,6 @@ interface VirtualSeriesBrowserProps {
   onEpisodePlay?: (episode: XtreamEpisode, series: XtreamShow) => void;
 }
 
-const ITEMS_PER_ROW = 6;
-
 export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: VirtualSeriesBrowserProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<XtreamShowListing | null>(null);
@@ -106,13 +104,13 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
   const formatRating = (rating: string | number): string => {
     if (!rating || rating === '0') return 'N/A';
     const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    return numRating.toString();
+    return numRating.toFixed(1);
   };
 
-  const formatYear = (year: string | null): string => year || 'Unknown';
+  const formatYear = (year: string | null): string => year || 'N/A';
 
   const formatEpisodeRuntime = (runtime: string | null): string => {
-    if (!runtime) return 'Unknown';
+    if (!runtime) return '';
     const minutes = parseInt(runtime);
     if (isNaN(minutes)) return runtime;
     const hours = Math.floor(minutes / 60);
@@ -125,20 +123,14 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
     return seriesDetails.episodes[selectedSeason.season_number.toString()] || [];
   };
 
-  const seriesRows = useMemo(() => {
-    const rows = [];
-    for (let i = 0; i < displaySeries.length; i += ITEMS_PER_ROW) {
-      rows.push(displaySeries.slice(i, i + ITEMS_PER_ROW));
-    }
-    return rows;
-  }, [displaySeries]);
-
   const rowRenderer = useCallback((index: number) => {
-    const row = seriesRows[index];
+    const startIdx = index * 6;
+    const endIdx = Math.min(startIdx + 6, displaySeries.length);
+    const rowSeries = displaySeries.slice(startIdx, endIdx);
 
     return (
       <div className="virtual-series-row" role="list">
-        {row.map((seriesItem) => (
+        {rowSeries.map((seriesItem) => (
           <article
             key={seriesItem.series_id}
             className={`virtual-series-card ${selectedSeries?.series_id === seriesItem.series_id ? 'selected' : ''}`}
@@ -178,25 +170,20 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
 
             <div className="series-info">
               <h3 className="series-title">{seriesItem.name}</h3>
-              <div className="series-meta" aria-label="Series metadata">
-                <span className="series-year" aria-label={`Year ${formatYear(seriesItem.year)}`}>
-                  {formatYear(seriesItem.year)}
-                </span>
-                <span className="series-rating" aria-label={`Rating ${formatRating(seriesItem.rating)} out of 10`}>
-                  ★ {formatRating(seriesItem.rating)}
-                </span>
+              <div className="series-meta">
+                {seriesItem.year && <span className="series-year">{formatYear(seriesItem.year)}</span>}
+                {seriesItem.rating && seriesItem.rating !== '0' && (
+                  <span className="series-rating">★ {formatRating(seriesItem.rating)}</span>
+                )}
               </div>
-              {seriesItem.genre && (
-                <div className="series-genre" aria-label={`Genre ${seriesItem.genre}`}>
-                  {seriesItem.genre}
-                </div>
-              )}
             </div>
           </article>
         ))}
       </div>
     );
-  }, [seriesRows, selectedSeries]);
+  }, [displaySeries, selectedSeries, handleSeriesClick]);
+
+  const totalRows = Math.ceil(displaySeries.length / 6);
 
   if (viewMode === 'details' && seriesDetails && selectedSeries) {
     const seasonEpisodes = getSeasonEpisodes();
@@ -231,23 +218,12 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
                 <h1 className="series-hero-title">{selectedSeries.name}</h1>
 
                 <div className="series-hero-meta">
-                  {selectedSeries.year && (
-                    <span className="meta-badge">{formatYear(selectedSeries.year)}</span>
-                  )}
+                  {selectedSeries.year && <span className="meta-badge">{formatYear(selectedSeries.year)}</span>}
                   {selectedSeries.rating && selectedSeries.rating !== '0' && (
-                    <span className="meta-badge rating">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                      {formatRating(selectedSeries.rating)}
-                    </span>
+                    <span className="meta-badge rating">★ {formatRating(selectedSeries.rating)}</span>
                   )}
-                  {selectedSeries.genre && (
-                    <span className="meta-badge genre">{selectedSeries.genre}</span>
-                  )}
-                  {selectedSeries.episode_run_time && (
-                    <span className="meta-badge">{formatEpisodeRuntime(selectedSeries.episode_run_time)}</span>
-                  )}
+                  {selectedSeries.genre && <span className="meta-badge genre">{selectedSeries.genre}</span>}
+                  {selectedSeries.episode_run_time && <span className="meta-badge">{formatEpisodeRuntime(selectedSeries.episode_run_time)}</span>}
                 </div>
 
                 {selectedSeries.plot && (
@@ -321,43 +297,26 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
                               e.stopPropagation();
                               handleEpisodePlay(episode);
                             }}
-                            title="Play episode"
+                            aria-label="Play episode"
                           >
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
+                            ▶
                           </button>
                         </div>
-                        <div className="episode-card-number">
-                          {episode.episode_num}
-                        </div>
+                        <div className="episode-card-number">{episode.episode_num}</div>
                       </div>
 
                       <div className="episode-card-content">
                         <h3 className="episode-card-title">{episode.title}</h3>
-
                         <div className="episode-card-meta">
-                          {episode.info.duration && (
-                            <span className="episode-card-duration">{episode.info.duration}</span>
-                          )}
-                          {episode.info.rating && (
-                            <span className="episode-card-rating">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                              </svg>
-                              {episode.info.rating}
-                            </span>
-                          )}
+                          {episode.info.duration && <span className="episode-card-duration">{episode.info.duration}</span>}
+                          {episode.info.rating && <span className="episode-card-rating">★ {episode.info.rating}</span>}
                         </div>
-
-                        {episode.info.plot && (
-                          <p className="episode-card-plot">{episode.info.plot}</p>
-                        )}
+                        {episode.info.plot && <p className="episode-card-plot">{episode.info.plot}</p>}
                       </div>
                     </div>
                   );
                 }}
-                overscan={3}
+                overscan={2}
                 className="episodes-list"
               />
             </div>
@@ -427,9 +386,9 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
 
       <Virtuoso
         style={{ height: '100%' }}
-        totalCount={seriesRows.length}
+        totalCount={totalRows}
         itemContent={rowRenderer}
-        overscan={3}
+        overscan={2}
         className="virtual-series-grid"
       />
     </div>
