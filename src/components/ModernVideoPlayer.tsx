@@ -71,7 +71,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const [selectedAudioTrack, setSelectedAudioTrack] = useState<number>(0);
 
     const hlsRef = useRef<Hls | null>(null);
-    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const controlsTimeoutRef = useRef<number | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const { getResumePosition, updatePlaybackPosition } = useContentPlayback();
