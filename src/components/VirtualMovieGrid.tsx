@@ -98,7 +98,11 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     handleMovieClick(movie);
   };
 
-  const formatRating = (rating: number) => rating === 0 ? 'N/A' : rating.toFixed(1);
+  const formatRating = (rating: number | string | null | undefined) => {
+    if (!rating || rating === 0) return 'N/A';
+    const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
+    return isNaN(numRating) ? 'N/A' : numRating.toFixed(1);
+  };
   const formatYear = (year: string | null) => year || 'N/A';
   const formatRuntime = (runtime: number | null) => {
     if (!runtime) return '';
