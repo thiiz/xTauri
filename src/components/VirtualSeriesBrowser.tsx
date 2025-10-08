@@ -4,7 +4,9 @@ import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamEpisode, XtreamSeason, XtreamShow, XtreamShowListing } from "../types/types";
 import CachedImage from "./CachedImage";
+import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
+import { SkeletonEpisodeList, SkeletonMovieGrid } from "./SkeletonLoader";
 
 interface VirtualSeriesBrowserProps {
   onSeriesSelect?: (series: XtreamShowListing) => void;
@@ -273,7 +275,9 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
             </div>
           </div>
 
-          {selectedSeason && (
+          {selectedSeason && seasonEpisodes.length === 0 ? (
+            <SkeletonEpisodeList count={8} />
+          ) : selectedSeason && (
             <div className="episodes-grid">
               <Virtuoso
                 style={{ height: '600px' }}
@@ -368,29 +372,52 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
         </div>
       )}
 
-      {isLoadingSeries && (
-        <div className="loading-indicator">
-          <span>Loading series...</span>
-        </div>
-      )}
-
       {seriesError && (
         <div className="error-indicator">
           <span>Error loading series: {seriesError}</span>
         </div>
       )}
 
-      <div className="pagination-info">
-        <span className="item-count">{displaySeries.length} series available</span>
-      </div>
+      {isLoadingSeries ? (
+        <SkeletonMovieGrid count={18} />
+      ) : displaySeries.length === 0 ? (
+        <EmptyState
+          icon="📺"
+          title={searchQuery ? "No series found" : "No series available"}
+          description={
+            searchQuery
+              ? `No results for "${searchQuery}". Try a different search term.`
+              : selectedCategoryId
+                ? "This category doesn't have any series yet."
+                : "No series available in your library."
+          }
+          action={
+            searchQuery || selectedCategoryId
+              ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchQuery("");
+                  handleCategoryFilter(null);
+                },
+              }
+              : undefined
+          }
+        />
+      ) : (
+        <>
+          <div className="pagination-info">
+            <span className="item-count">{displaySeries.length} series available</span>
+          </div>
 
-      <Virtuoso
-        style={{ height: '100%' }}
-        totalCount={totalRows}
-        itemContent={rowRenderer}
-        overscan={2}
-        className="virtual-series-grid"
-      />
+          <Virtuoso
+            style={{ height: '100%' }}
+            totalCount={totalRows}
+            itemContent={rowRenderer}
+            overscan={2}
+            className="virtual-series-grid"
+          />
+        </>
+      )}
     </div>
   );
 }

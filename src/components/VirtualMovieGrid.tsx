@@ -4,7 +4,9 @@ import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamMovie, XtreamMoviesListing } from "../types/types";
 import CachedImage from "./CachedImage";
+import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
+import { SkeletonMovieGrid } from "./SkeletonLoader";
 
 interface VirtualMovieGridProps {
   onMovieSelect?: (movie: XtreamMoviesListing) => void;
@@ -220,29 +222,52 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
         </div>
       )}
 
-      {isLoadingMovies && (
-        <div className="loading-indicator" role="status" aria-live="polite" aria-busy="true">
-          <span>Loading movies...</span>
-        </div>
-      )}
-
       {moviesError && (
         <div className="error-indicator" role="alert" aria-live="assertive">
           <span>Error loading movies: {moviesError}</span>
         </div>
       )}
 
-      <div className="pagination-info" role="status" aria-live="polite">
-        <span className="item-count">{displayMovies.length} movies available</span>
-      </div>
+      {isLoadingMovies ? (
+        <SkeletonMovieGrid count={18} />
+      ) : displayMovies.length === 0 ? (
+        <EmptyState
+          icon="🎬"
+          title={searchQuery ? "No movies found" : "No movies available"}
+          description={
+            searchQuery
+              ? `No results for "${searchQuery}". Try a different search term.`
+              : selectedCategoryId
+                ? "This category doesn't have any movies yet."
+                : "No movies available in your library."
+          }
+          action={
+            searchQuery || selectedCategoryId
+              ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchQuery("");
+                  handleCategoryFilter(null);
+                },
+              }
+              : undefined
+          }
+        />
+      ) : (
+        <>
+          <div className="pagination-info" role="status" aria-live="polite">
+            <span className="item-count">{displayMovies.length} movies available</span>
+          </div>
 
-      <Virtuoso
-        style={{ height: '100%' }}
-        totalCount={totalRows}
-        itemContent={rowRenderer}
-        overscan={2}
-        className="virtual-movie-grid"
-      />
+          <Virtuoso
+            style={{ height: '100%' }}
+            totalCount={totalRows}
+            itemContent={rowRenderer}
+            overscan={2}
+            className="virtual-movie-grid"
+          />
+        </>
+      )}
 
       {showDetails && selectedMovie && (
         <div className="movie-details-modal" onClick={() => setShowDetails(false)}>
