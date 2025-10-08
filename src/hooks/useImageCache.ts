@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 
 interface ImageCacheHook {
   getCachedImageUrl: (originalUrl: string) => Promise<string>;
@@ -144,6 +143,12 @@ export const useCachedImageAsync = (
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const { getCachedImageUrlAsync } = useImageCache();
 
+  // Reset hasLoaded when URL changes
+  useEffect(() => {
+    setHasLoaded(false);
+    setCachedUrl(originalUrl);
+  }, [originalUrl]);
+
   useEffect(() => {
     if (!originalUrl || !shouldLoad || hasLoaded) {
       if (!originalUrl) {
@@ -185,6 +190,12 @@ export const useCachedImage = (
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const { getCachedImageUrl } = useImageCache();
+
+  // Reset hasLoaded when URL changes
+  useEffect(() => {
+    setHasLoaded(false);
+    setCachedUrl(originalUrl);
+  }, [originalUrl]);
 
   useEffect(() => {
     if (!originalUrl || !shouldLoad || hasLoaded) {
