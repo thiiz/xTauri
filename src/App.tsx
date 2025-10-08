@@ -371,7 +371,7 @@ function App() {
   });
 
   // Show profile manager if no active profile
-  if (!activeProfile && activeTab !== "profiles" && activeTab !== "settings" && activeTab !== "help") {
+  if (!activeProfile && activeTab !== "settings" && activeTab !== "help") {
     return (
       <div className="container">
         <NavigationSidebar />
@@ -415,16 +415,6 @@ function App() {
             </div>
             <div className="settings-container">
               <Help />
-            </div>
-          </div>
-        ) : activeTab === "profiles" ? (
-          <div className="settings-full-width">
-            <div className="section-header">
-              <h2 className="section-title">Xtream Profiles</h2>
-              <p className="section-subtitle">Manage your Xtream Codes accounts</p>
-            </div>
-            <div className="settings-container">
-              <ProfileManager />
             </div>
           </div>
         ) : activeTab === "movies" ? (

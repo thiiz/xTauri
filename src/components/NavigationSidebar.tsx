@@ -4,7 +4,6 @@ import {
   HelpIcon,
   HistoryIcon,
   MovieIcon,
-  ProfileIcon,
   SeriesIcon,
   SettingsIcon,
   TvIcon,
@@ -19,83 +18,77 @@ type Tab =
   | "history"
   | "movies"
   | "series"
-  | "profiles"
   | "help"
   | "settings";
+
+const mainNavItems = [
+  { id: "channels" as Tab, icon: TvIcon, label: "Channels" },
+  { id: "movies" as Tab, icon: MovieIcon, label: "Movies" },
+  { id: "series" as Tab, icon: SeriesIcon, label: "Series" },
+];
+
+const libraryNavItems = [
+  { id: "favorites" as Tab, icon: HeartIcon, label: "Favorites" },
+  { id: "history" as Tab, icon: HistoryIcon, label: "History" },
+  { id: "groups" as Tab, icon: UsersIcon, label: "Groups" },
+];
+
+const settingsNavItems = [
+  { id: "help" as Tab, icon: HelpIcon, label: "Help" },
+  { id: "settings" as Tab, icon: SettingsIcon, label: "Settings" },
+];
 
 export default function NavigationSidebar() {
   const { activeTab, setActiveTab } = useUIStore();
 
+  const renderNavButton = (item: { id: Tab; icon: any; label: string }) => {
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        className={`nav-button ${activeTab === item.id ? "active" : ""}`}
+        onClick={() => setActiveTab(item.id)}
+      >
+        <Icon />
+        <span className="nav-button-label">{item.label}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="nav-sidebar">
-      <div className="app-header">
-        <div className="profile-selector-container">
+      <div className="nav-sidebar-content">
+        <div className="nav-header">
+          <div className="app-brand">
+            <div className="app-brand-icon">📺</div>
+            <h1 className="app-brand-title">Tollo</h1>
+          </div>
+        </div>
+
+        <div className="profile-selector-wrapper">
           <ProfileSelector />
         </div>
+
         <nav className="nav-menu">
-          <button
-            className={`nav-button ${activeTab === "channels" ? "active" : ""}`}
-            onClick={() => setActiveTab("channels")}
-          >
-            <TvIcon />
-            Channels
-          </button>
-          <button
-            className={`nav-button ${activeTab === "movies" ? "active" : ""}`}
-            onClick={() => setActiveTab("movies")}
-          >
-            <MovieIcon />
-            Movies
-          </button>
-          <button
-            className={`nav-button ${activeTab === "series" ? "active" : ""}`}
-            onClick={() => setActiveTab("series")}
-          >
-            <SeriesIcon />
-            Series
-          </button>
-          <button
-            className={`nav-button ${activeTab === "favorites" ? "active" : ""}`}
-            onClick={() => setActiveTab("favorites")}
-          >
-            <HeartIcon />
-            Favorites
-          </button>
-          <button
-            className={`nav-button ${activeTab === "history" ? "active" : ""}`}
-            onClick={() => setActiveTab("history")}
-          >
-            <HistoryIcon />
-            History
-          </button>
-          <button
-            className={`nav-button ${activeTab === "groups" ? "active" : ""}`}
-            onClick={() => setActiveTab("groups")}
-          >
-            <UsersIcon />
-            Groups
-          </button>
-          <button
-            className={`nav-button ${activeTab === "profiles" ? "active" : ""}`}
-            onClick={() => setActiveTab("profiles")}
-          >
-            <ProfileIcon />
-            Profiles
-          </button>
-          <button
-            className={`nav-button ${activeTab === "help" ? "active" : ""}`}
-            onClick={() => setActiveTab("help")}
-          >
-            <HelpIcon />
-            Help
-          </button>
-          <button
-            className={`nav-button ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <SettingsIcon />
-            Settings
-          </button>
+          <div className="nav-section">
+            <div className="nav-section-title">Browse</div>
+            <div className="nav-section-items">
+              {mainNavItems.map(renderNavButton)}
+            </div>
+          </div>
+
+          <div className="nav-section">
+            <div className="nav-section-title">Library</div>
+            <div className="nav-section-items">
+              {libraryNavItems.map(renderNavButton)}
+            </div>
+          </div>
+
+          <div className="nav-section nav-section-bottom">
+            <div className="nav-section-items">
+              {settingsNavItems.map(renderNavButton)}
+            </div>
+          </div>
         </nav>
       </div>
     </div>

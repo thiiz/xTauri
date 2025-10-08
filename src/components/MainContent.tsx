@@ -9,11 +9,10 @@ import {
 } from "../stores";
 import { type Channel } from "./ChannelList";
 import GroupList from "./GroupList";
-import ProfileManager from "./ProfileManager";
 import SearchBar from "./SearchBar";
 import VirtualChannelList from "./VirtualChannelList";
-import VirtualSeriesBrowser from "./VirtualSeriesBrowser";
 import VirtualMovieGrid from "./VirtualMovieGrid";
+import VirtualSeriesBrowser from "./VirtualSeriesBrowser";
 
 interface MainContentProps {
   filteredChannels: Channel[];
@@ -70,8 +69,6 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
         return "Movies";
       case "series":
         return "TV Series";
-      case "profiles":
-        return "Xtream Profiles";
       default:
         return "IPTV Player";
     }
@@ -127,8 +124,6 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
         return activeProfile
           ? `${series.length} series available`
           : "Select an Xtream profile to view series";
-      case "profiles":
-        return "Manage your Xtream Codes profiles";
       default:
         return "";
     }
@@ -196,8 +191,6 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
           );
         }
         return <VirtualSeriesBrowser />;
-      case "profiles":
-        return <ProfileManager />;
 
       default:
         return null;
