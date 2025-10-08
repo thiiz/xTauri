@@ -16,6 +16,9 @@
 @import "./styles/movies.css";
 @import "./styles/series.css";
 @import "./styles/responsive.css";
+@import "./styles/virtual-channels.css";
+@import "./styles/modern-search.css";
+@import "./styles/virtual-movies-series.css";
 
 /* Content sections for movies and series */
 .content-full-width {

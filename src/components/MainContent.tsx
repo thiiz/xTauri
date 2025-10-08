@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
   useChannelStore,
   useProfileStore,
@@ -7,28 +7,17 @@ import {
   useUIStore,
   useXtreamContentStore,
 } from "../stores";
-import ChannelList, { type Channel } from "./ChannelList";
+import { type Channel } from "./ChannelList";
 import GroupList from "./GroupList";
 import MovieGrid from "./MovieGrid";
 import ProfileManager from "./ProfileManager";
+import SearchBar from "./SearchBar";
 import SeriesBrowser from "./SeriesBrowser";
+import VirtualChannelList from "./VirtualChannelList";
 
 interface MainContentProps {
   filteredChannels: Channel[];
 }
-
-// Loading indicator component
-const LoadingChannelList = () => (
-  <div className="loading-channel-list">
-    <div className="loading-content">
-      <div className="loading-spinner-large">
-        <div className="spinner-large"></div>
-      </div>
-      <h3>Loading Channel List</h3>
-      <p>Setting up channels and groups...</p>
-    </div>
-  </div>
-);
 
 export default function MainContent({ filteredChannels }: MainContentProps) {
   // Get state from stores
@@ -63,58 +52,9 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     }
   }, [activeProfile, activeTab, fetchXtreamChannels]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.ctrlKey) {
-      switch (e.key) {
-        case "w":
-          e.preventDefault();
-          // Remove last word
-          const input = e.currentTarget;
-          const value = input.value;
-          const cursorPos = input.selectionStart || 0;
-          const beforeCursor = value.substring(0, cursorPos);
-          const afterCursor = value.substring(cursorPos);
-
-          // Find the start of the last word before cursor
-          const words = beforeCursor.trimEnd();
-          const lastSpaceIndex = words.lastIndexOf(" ");
-          const newBeforeCursor =
-            lastSpaceIndex >= 0 ? words.substring(0, lastSpaceIndex + 1) : "";
-
-          const newValue = newBeforeCursor + afterCursor;
-          setSearchQuery(newValue);
-
-          // Set cursor position after the removed word
-          setTimeout(() => {
-            input.setSelectionRange(
-              newBeforeCursor.length,
-              newBeforeCursor.length,
-            );
-          }, 0);
-          break;
-
-        case "u":
-          e.preventDefault();
-          // Clear entire input
-          setSearchQuery("");
-          break;
-
-        case "c":
-          e.preventDefault();
-          // Unfocus the input
-          e.currentTarget.blur();
-          break;
-      }
-    }
-  };
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, [setSearchQuery]);
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -201,28 +141,12 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
 
         return (
           <>
-            <div className="search-container">
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="Search channels (min 3 characters)..."
-                  value={searchQuery}
-                  onChange={handleSearch}
-                  onKeyDown={handleKeyDown}
-                />
-                {searchQuery && (
-                  <button
-                    className="clear-search-btn"
-                    onClick={handleClearSearch}
-                    type="button"
-                    title="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
+            <SearchBar
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search channels (min 3 characters)..."
+              debounceDelay={300}
+            />
             {searchQuery.length > 0 && searchQuery.length < 3 && (
               <div className="search-status">
                 Type at least 3 characters to search...
@@ -230,14 +154,14 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             )}
             {isSearching && <div className="search-status">Searching...</div>}
             <div className="content-list">
-              <ChannelList channels={combinedChannels} />
+              <VirtualChannelList channels={combinedChannels} />
             </div>
           </>
         );
       case "favorites":
         return (
           <div className="content-list">
-            <ChannelList channels={favorites} />
+            <VirtualChannelList channels={favorites} />
           </div>
         );
       case "groups":
@@ -249,7 +173,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
       case "history":
         return (
           <div className="content-list">
-            <ChannelList channels={history} />
+            <VirtualChannelList channels={history} />
           </div>
         );
       case "movies":

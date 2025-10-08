@@ -9,9 +9,9 @@ import Settings from "./components/Settings";
 import "./App.css";
 import type { Channel } from "./components/ChannelList";
 import ContentDetails from "./components/ContentDetails";
-import MovieGrid from "./components/MovieGrid";
-import SeriesBrowser from "./components/SeriesBrowser";
 import VideoPlayerWrapper, { type ContentItem } from "./components/VideoPlayerWrapper";
+import VirtualMovieGrid from "./components/VirtualMovieGrid";
+import VirtualSeriesBrowser from "./components/VirtualSeriesBrowser";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import {
   GroupDisplayMode,
@@ -435,7 +435,7 @@ function App() {
                 <p className="section-subtitle">Browse and watch movies</p>
               </div>
               <div className="movies-container">
-                <MovieGrid
+                <VirtualMovieGrid
                   onMovieSelect={handleMovieSelect}
                   onMoviePlay={handleMoviePlay}
                 />
@@ -463,7 +463,7 @@ function App() {
                 <p className="section-subtitle">Browse and watch TV series</p>
               </div>
               <div className="series-container">
-                <SeriesBrowser
+                <VirtualSeriesBrowser
                   onSeriesSelect={handleSeriesSelect}
                   onEpisodePlay={handleEpisodePlay}
                 />
