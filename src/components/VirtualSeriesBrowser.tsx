@@ -11,9 +11,11 @@ import { SkeletonEpisodeList, SkeletonMovieGrid } from "./SkeletonLoader";
 interface VirtualSeriesBrowserProps {
   onEpisodePlay?: (episode: XtreamEpisode, series: XtreamShow) => void;
   onContentSelect?: () => void;
+  currentEpisode?: XtreamEpisode | null;
+  onGetNextEpisode?: (currentEpisode: XtreamEpisode, series: XtreamShow) => { episode: XtreamEpisode; series: XtreamShow } | null;
 }
 
-export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }: VirtualSeriesBrowserProps) {
+export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect, currentEpisode, onGetNextEpisode }: VirtualSeriesBrowserProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<XtreamShowListing | null>(null);
   const [seriesDetails, setSeriesDetails] = useState<XtreamShow | null>(null);

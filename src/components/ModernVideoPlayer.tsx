@@ -8,6 +8,7 @@ import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import type { EnhancedEPGListing, XtreamChannel, XtreamMoviesListing, XtreamShow } from "../types/types";
 import type { Channel } from "./ChannelList";
 import { PlayIcon } from "./Icons";
+import NextEpisodeCountdown from "./NextEpisodeCountdown";
 import VideoControls from "./VideoControls";
 import VideoMetadataOverlay from "./VideoMetadataOverlay";
 import VideoResumePrompt from "./VideoResumePrompt";
@@ -34,10 +35,15 @@ export interface ContentItem {
 interface ModernVideoPlayerProps {
   selectedContent?: ContentItem | null;
   onContentChange?: (content: ContentItem | null) => void;
+  nextEpisode?: {
+    episode: any;
+    series: any;
+  } | null;
+  onPlayNextEpisode?: () => void;
 }
 
 const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
-  ({ selectedContent }, ref) => {
+  ({ selectedContent, nextEpisode, onPlayNextEpisode }, ref) => {
     const { selectedChannel } = useChannelStore();
     const { activeProfile } = useProfileStore();
     const { currentAndNextEPG, epgData } = useXtreamContentStore();
@@ -63,6 +69,10 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const [isPiP, setIsPiP] = useState(false);
     const [showControlsOverlay, setShowControlsOverlay] = useState(true);
     const [buffering, setBuffering] = useState(false);
+
+    // Next episode countdown state
+    const [showNextEpisodeCountdown, setShowNextEpisodeCountdown] = useState(false);
+    const [countdownTriggered, setCountdownTriggered] = useState(false);
 
     // Subtitle and audio tracks
     const [subtitles, setSubtitles] = useState<TextTrack[]>([]);
@@ -175,6 +185,16 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
 
       fetchEPGData();
     }, [activeContent, activeProfile, currentAndNextEPG, epgData]);
+
+    // Apply volume and mute state to video element
+    useEffect(() => {
+      if (!ref || typeof ref === 'function') return;
+      const video = ref.current;
+      if (!video) return;
+
+      video.volume = volume;
+      video.muted = isMuted;
+    }, [streamUrl, ref, volume, isMuted]);
 
     // Setup HLS.js
     useEffect(() => {
@@ -298,7 +318,21 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       if (activeContent && (activeContent.type === 'xtream-movie' || activeContent.type === 'xtream-series')) {
         updatePlaybackPosition(video.currentTime, video.duration);
       }
-    }, [activeContent, updatePlaybackPosition]);
+
+      // Check if we should show next episode countdown (30 seconds before end)
+      const timeRemaining = video.duration - video.currentTime;
+      if (
+        nextEpisode &&
+        activeContent?.type === 'xtream-series' &&
+        timeRemaining <= 30 &&
+        timeRemaining > 0 &&
+        !countdownTriggered &&
+        !video.paused
+      ) {
+        setShowNextEpisodeCountdown(true);
+        setCountdownTriggered(true);
+      }
+    }, [activeContent, updatePlaybackPosition, nextEpisode, countdownTriggered]);
 
     const handleVideoLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
       const video = event.currentTarget;
@@ -311,6 +345,10 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       // Extract text tracks (subtitles)
       const tracks = Array.from(video.textTracks);
       setSubtitles(tracks);
+
+      // Reset countdown state for new video
+      setShowNextEpisodeCountdown(false);
+      setCountdownTriggered(false);
     }, [resumePosition, showResumePrompt]);
 
     const handlePlay = useCallback(() => setIsPlaying(true), []);
@@ -429,6 +467,15 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const toggleMetadataDisplay = useCallback(() => {
       setShowMetadata(!showMetadata);
     }, [showMetadata]);
+
+    const handlePlayNextEpisode = useCallback(() => {
+      setShowNextEpisodeCountdown(false);
+      onPlayNextEpisode?.();
+    }, [onPlayNextEpisode]);
+
+    const handleCancelNextEpisode = useCallback(() => {
+      setShowNextEpisodeCountdown(false);
+    }, []);
 
     // Auto-hide controls
     const resetControlsTimeout = useCallback(() => {
@@ -723,6 +770,17 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
                   resumePosition={resumePosition}
                   onResume={handleResumePlayback}
                   onStartOver={handleStartFromBeginning}
+                />
+              )}
+
+              {showNextEpisodeCountdown && nextEpisode && (
+                <NextEpisodeCountdown
+                  show={showNextEpisodeCountdown}
+                  timeRemaining={10}
+                  nextEpisodeTitle={nextEpisode.episode.title || 'Próximo Episódio'}
+                  nextEpisodeNumber={nextEpisode.episode.episode_num || ''}
+                  onConfirm={handlePlayNextEpisode}
+                  onCancel={handleCancelNextEpisode}
                 />
               )}
             </>

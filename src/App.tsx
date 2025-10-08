@@ -79,6 +79,9 @@ function App() {
 
   // State for Xtream content playback
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
+  const [currentSeries, setCurrentSeries] = useState<XtreamShow | null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState<XtreamEpisode | null>(null);
+  const [nextEpisode, setNextEpisode] = useState<{ episode: XtreamEpisode; series: XtreamShow } | null>(null);
 
   // Fetch all settings on app load
   useEffect(() => {
@@ -338,6 +341,13 @@ function App() {
   const handleMoviePlay = handleMovieSelect;
 
   const handleEpisodePlay = (episode: XtreamEpisode, series: XtreamShow) => {
+    setCurrentEpisode(episode);
+    setCurrentSeries(series);
+
+    // Find next episode
+    const next = getNextEpisode(episode, series);
+    setNextEpisode(next);
+
     handleContentSelect({
       type: 'xtream-series',
       data: {
@@ -353,6 +363,37 @@ function App() {
         episodeNumber: parseInt(episode.episode_num),
       }
     });
+  };
+
+  const getNextEpisode = (currentEpisode: XtreamEpisode, series: XtreamShow): { episode: XtreamEpisode; series: XtreamShow } | null => {
+    const currentSeasonNum = currentEpisode.season;
+    const currentEpisodeNum = parseInt(currentEpisode.episode_num);
+
+    // Get episodes from current season
+    const currentSeasonEpisodes = series.episodes[currentSeasonNum.toString()] || [];
+
+    // Find next episode in current season
+    const nextInSeason = currentSeasonEpisodes.find(ep => parseInt(ep.episode_num) === currentEpisodeNum + 1);
+
+    if (nextInSeason) {
+      return { episode: nextInSeason, series };
+    }
+
+    // Try next season
+    const nextSeasonNum = currentSeasonNum + 1;
+    const nextSeasonEpisodes = series.episodes[nextSeasonNum.toString()] || [];
+
+    if (nextSeasonEpisodes.length > 0) {
+      return { episode: nextSeasonEpisodes[0], series };
+    }
+
+    return null;
+  };
+
+  const handlePlayNextEpisode = () => {
+    if (nextEpisode) {
+      handleEpisodePlay(nextEpisode.episode, nextEpisode.series);
+    }
   };
 
   useKeyboardNavigation({
@@ -485,6 +526,8 @@ function App() {
                 <VideoPlayerWrapper
                   ref={videoRef}
                   selectedXtreamContent={selectedXtreamContent}
+                  nextEpisode={nextEpisode}
+                  onPlayNextEpisode={handlePlayNextEpisode}
                 />
               )}
 

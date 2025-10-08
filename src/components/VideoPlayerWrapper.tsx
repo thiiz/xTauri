@@ -4,20 +4,22 @@ import ModernVideoPlayer, { type ContentItem } from "./ModernVideoPlayer";
 interface VideoPlayerWrapperProps {
   selectedXtreamContent?: ContentItem | null;
   onContentChange?: (content: ContentItem | null) => void;
+  nextEpisode?: {
+    episode: any;
+    series: any;
+  } | null;
+  onPlayNextEpisode?: () => void;
 }
 
-/**
- * VideoPlayerWrapper - Provides backward compatibility while using the modern player
- * This component wraps the ModernVideoPlayer and can be used as a drop-in replacement
- * for the EnhancedVideoPlayer component.
- */
 const VideoPlayerWrapper = forwardRef<HTMLVideoElement, VideoPlayerWrapperProps>(
-  ({ selectedXtreamContent, onContentChange }, ref) => {
+  ({ selectedXtreamContent, onContentChange, nextEpisode, onPlayNextEpisode }, ref) => {
     return (
       <ModernVideoPlayer
         ref={ref}
         selectedContent={selectedXtreamContent}
         onContentChange={onContentChange}
+        nextEpisode={nextEpisode}
+        onPlayNextEpisode={onPlayNextEpisode}
       />
     );
   }
