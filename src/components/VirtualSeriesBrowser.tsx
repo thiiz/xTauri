@@ -122,10 +122,10 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const getSeasonEpisodes = () => {
+  const seasonEpisodes = useMemo(() => {
     if (!seriesDetails || !selectedSeason) return [];
     return seriesDetails.episodes[selectedSeason.season_number.toString()] || [];
-  };
+  }, [seriesDetails, selectedSeason]);
 
   const rowRenderer = useCallback((index: number) => {
     const startIdx = index * 6;
@@ -190,8 +190,6 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
   const totalRows = Math.ceil(displaySeries.length / 6);
 
   if (viewMode === 'details' && seriesDetails && selectedSeries) {
-    const seasonEpisodes = getSeasonEpisodes();
-
     return (
       <div className="virtual-series-details-container">
         {/* Hero Section with Background */}
@@ -262,10 +260,13 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
             <div className="season-dropdown-wrapper">
               <select
                 className="season-dropdown"
-                value={selectedSeason?.season_number || ''}
+                value={selectedSeason?.season_number?.toString() || ''}
                 onChange={(e) => {
-                  const season = seriesDetails.seasons.find(s => s.season_number === parseInt(e.target.value));
-                  if (season) setSelectedSeason(season);
+                  const selectedValue = e.target.value;
+                  const season = seriesDetails.seasons.find(s => s.season_number.toString() === selectedValue);
+                  if (season) {
+                    setSelectedSeason(season);
+                  }
                 }}
               >
                 {seriesDetails.seasons.map((season) => (
