@@ -63,7 +63,15 @@ function App() {
   } = useXtreamContentStore();
 
   // Get settings
-  const { enablePreview, fetchEnablePreview, autoplay } = useSettingsStore();
+  const {
+    enablePreview,
+    fetchEnablePreview,
+    autoplay,
+    fetchAutoplay,
+    fetchMuteOnStart,
+    fetchShowControls,
+    fetchCacheDuration,
+  } = useSettingsStore();
 
   // Refs for video player
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,10 +80,24 @@ function App() {
   // State for Xtream content playback
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
 
-  // Fetch settings on app load
+  // Fetch all settings on app load
   useEffect(() => {
-    fetchEnablePreview();
-  }, [fetchEnablePreview]);
+    const loadSettings = async () => {
+      try {
+        await Promise.all([
+          fetchEnablePreview(),
+          fetchAutoplay(),
+          fetchMuteOnStart(),
+          fetchShowControls(),
+          fetchCacheDuration(),
+        ]);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      }
+    };
+
+    loadSettings();
+  }, [fetchEnablePreview, fetchAutoplay, fetchMuteOnStart, fetchShowControls, fetchCacheDuration]);
 
   // Load Xtream content when active profile changes
   useEffect(() => {
