@@ -19,6 +19,7 @@
 @import "./styles/virtual-movies-series.css";
 @import "./styles/skeleton-loader.css";
 @import "./styles/empty-state.css";
+@import "./styles/modern-video-player.css";
 
 /* Content sections for movies and series */
 .content-full-width {
