@@ -3,6 +3,7 @@ import { Virtuoso } from "react-virtuoso";
 import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamMovie, XtreamMoviesListing } from "../types/types";
+import { formatRating, formatRuntime, formatYear } from "../utils/formatters";
 import CachedImage from "./CachedImage";
 import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
@@ -50,14 +51,14 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     fetchMovies(activeProfile.id);
   }, [activeProfile, fetchMovieCategories, fetchMovies]);
 
-  const handleCategoryFilter = async (categoryId: string | null) => {
+  const handleCategoryFilter = useCallback(async (categoryId: string | null) => {
     if (!activeProfile) return;
 
     setSelectedCategoryId(categoryId);
     setSelectedCategory(categoryId);
     clearSearch();
     await fetchMovies(activeProfile.id, categoryId || undefined);
-  };
+  }, [activeProfile, setSelectedCategory, clearSearch, fetchMovies]);
 
   const handleSearchChange = useCallback(async (query: string) => {
     if (!activeProfile) return;
@@ -72,7 +73,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     }
   }, [activeProfile, selectedCategoryId, searchMovies, clearSearch, fetchMovies]);
 
-  const handleMovieClick = async (movie: XtreamMoviesListing) => {
+  const handleMovieClick = useCallback(async (movie: XtreamMoviesListing) => {
     setSelectedMovie(movie);
     onContentSelect?.();
     onMovieSelect?.(movie);
@@ -85,31 +86,20 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     } catch (error) {
       console.error('Failed to fetch movie details:', error);
     }
-  };
+  }, [activeProfile, fetchMovieDetails, onContentSelect, onMovieSelect]);
 
-  const handleMoviePlay = (movie: XtreamMoviesListing) => {
+  const handleMoviePlay = useCallback((movie: XtreamMoviesListing) => {
     onContentSelect?.();
     onMoviePlay?.(movie);
-  };
+  }, [onContentSelect, onMoviePlay]);
 
-  const handleShowDetails = (movie: XtreamMoviesListing) => {
+  const handleShowDetails = useCallback((movie: XtreamMoviesListing) => {
     setSelectedMovie(movie);
     setShowDetails(true);
     handleMovieClick(movie);
-  };
+  }, [handleMovieClick]);
 
-  const formatRating = (rating: number | string | null | undefined) => {
-    if (!rating || rating === 0) return 'N/A';
-    const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    return isNaN(numRating) ? 'N/A' : numRating.toFixed(1);
-  };
-  const formatYear = (year: string | null) => year || 'N/A';
-  const formatRuntime = (runtime: number | null) => {
-    if (!runtime) return '';
-    const hours = Math.floor(runtime / 60);
-    const minutes = runtime % 60;
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  };
+  // Formatting functions are now imported from utils/formatters
 
   const rowRenderer = useCallback((index: number) => {
     const startIdx = index * 6;

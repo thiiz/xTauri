@@ -3,6 +3,7 @@ import { Virtuoso } from "react-virtuoso";
 import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamEpisode, XtreamSeason, XtreamShow, XtreamShowListing } from "../types/types";
+import { formatEpisodeRuntime, formatRating, formatYear } from "../utils/formatters";
 import CachedImage from "./CachedImage";
 import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
@@ -15,7 +16,7 @@ interface VirtualSeriesBrowserProps {
   onGetNextEpisode?: (currentEpisode: XtreamEpisode, series: XtreamShow) => { episode: XtreamEpisode; series: XtreamShow } | null;
 }
 
-export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect}: VirtualSeriesBrowserProps) {
+export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }: VirtualSeriesBrowserProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<XtreamShowListing | null>(null);
   const [seriesDetails, setSeriesDetails] = useState<XtreamShow | null>(null);
@@ -57,14 +58,14 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect}: 
     }
   }, [seriesDetails]);
 
-  const handleCategoryFilter = async (categoryId: string | null) => {
+  const handleCategoryFilter = useCallback(async (categoryId: string | null) => {
     if (!activeProfile) return;
 
     setSelectedCategoryId(categoryId);
     setSelectedCategory(categoryId);
     setSearchQuery("");
     await fetchSeries(activeProfile.id, categoryId || undefined);
-  };
+  }, [activeProfile, setSelectedCategory, fetchSeries]);
 
   const handleSearchChange = useCallback(async (query: string) => {
     if (!activeProfile) return;
@@ -78,7 +79,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect}: 
     }
   }, [activeProfile, selectedCategoryId, searchSeries, fetchSeries]);
 
-  const handleSeriesClick = async (seriesItem: XtreamShowListing) => {
+  const handleSeriesClick = useCallback(async (seriesItem: XtreamShowListing) => {
     setSelectedSeries(seriesItem);
     onContentSelect?.();
 
@@ -91,38 +92,23 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect}: 
     } catch (error) {
       console.error('Failed to fetch series details:', error);
     }
-  };
+  }, [activeProfile, fetchSeriesDetails, onContentSelect]);
 
-  const handleEpisodePlay = (episode: XtreamEpisode) => {
+  const handleEpisodePlay = useCallback((episode: XtreamEpisode) => {
     if (seriesDetails) {
       onContentSelect?.();
       onEpisodePlay?.(episode, seriesDetails);
     }
-  };
+  }, [seriesDetails, onContentSelect, onEpisodePlay]);
 
-  const handleBackToGrid = () => {
+  const handleBackToGrid = useCallback(() => {
     setViewMode('grid');
     setSelectedSeries(null);
     setSeriesDetails(null);
     setSelectedSeason(null);
-  };
+  }, []);
 
-  const formatRating = (rating: string | number) => {
-    if (!rating || rating === '0') return 'N/A';
-    const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    return isNaN(numRating) ? 'N/A' : numRating.toFixed(1);
-  };
-
-  const formatYear = (year: string | null) => year || 'N/A';
-
-  const formatEpisodeRuntime = (runtime: string | null) => {
-    if (!runtime) return '';
-    const minutes = parseInt(runtime);
-    if (isNaN(minutes)) return runtime;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
+  // Formatting functions are now imported from utils/formatters
 
   const seasonEpisodes = useMemo(() => {
     if (!seriesDetails || !selectedSeason) return [];

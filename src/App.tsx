@@ -1,14 +1,11 @@
-import Hls from "hls.js";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "./App.css";
+import ContentDetails from "./components/ContentDetails";
 import Help from "./components/Help";
 import MainContent from "./components/MainContent";
 import NavigationSidebar from "./components/NavigationSidebar";
 import ProfileManager from "./components/ProfileManager";
 import Settings from "./components/Settings";
-
-import "./App.css";
-import type { Channel } from "./components/ChannelList";
-import ContentDetails from "./components/ContentDetails";
 import VideoPlayerWrapper, { type ContentItem } from "./components/VideoPlayerWrapper";
 import VirtualMovieGrid from "./components/VirtualMovieGrid";
 import VirtualSeriesBrowser from "./components/VirtualSeriesBrowser";
@@ -66,7 +63,6 @@ function App() {
   const {
     enablePreview,
     fetchEnablePreview,
-    autoplay,
     fetchAutoplay,
     fetchMuteOnStart,
     fetchShowControls,
@@ -77,7 +73,6 @@ function App() {
 
   // Refs for video player
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
 
   // State for Xtream content playback
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
@@ -125,11 +120,11 @@ function App() {
     loadXtreamContent();
   }, [activeProfile, fetchChannelCategories, fetchXtreamChannels, setChannels]);
 
-  // Sync Xtream channels to channel store
-  useEffect(() => {
-    if (xtreamChannels.length === 0) return;
+  // Sync Xtream channels to channel store - Memoized to prevent unnecessary conversions
+  const convertedChannels = useMemo(() => {
+    if (xtreamChannels.length === 0) return [];
 
-    const convertedChannels: Channel[] = xtreamChannels.map(ch => ({
+    return xtreamChannels.map(ch => ({
       name: ch.name,
       url: ch.url || '',
       group_title: ch.category_id,
@@ -138,96 +133,47 @@ function App() {
       resolution: 'HD',
       extra_info: '',
     }));
-    setChannels(convertedChannels);
-  }, [xtreamChannels, setChannels]);
+  }, [xtreamChannels]);
 
   useEffect(() => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
+    if (convertedChannels.length > 0) {
+      setChannels(convertedChannels);
     }
-
-    // Only load video if preview is enabled
-    if (enablePreview && selectedChannel && videoRef.current) {
-      const video = videoRef.current;
-      const isHlsUrl =
-        selectedChannel.url.includes(".m3u8") ||
-        selectedChannel.url.includes("m3u8");
-
-      if (isHlsUrl && Hls.isSupported()) {
-        // Use HLS.js for .m3u8 streams when supported
-        const hls = new Hls();
-        hlsRef.current = hls;
-        hls.loadSource(selectedChannel.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (autoplay) video.play();
-        });
-      } else if (
-        isHlsUrl &&
-        video.canPlayType("application/vnd.apple.mpegurl")
-      ) {
-        // Native HLS support (Safari)
-        video.src = selectedChannel.url;
-        video.addEventListener("loadedmetadata", () => {
-          if (autoplay) video.play();
-        });
-      } else {
-        // Fallback for direct video streams (MP4, WebM, etc.) and other protocols
-        video.src = selectedChannel.url;
-        video.addEventListener("loadedmetadata", () => {
-          if (autoplay) video.play();
-        });
-
-        // Handle load errors gracefully
-        video.addEventListener("error", (e) => {
-          console.warn(`Video load error for ${selectedChannel.name}:`, e);
-        });
-      }
-    }
-  }, [selectedChannel, enablePreview, autoplay]);
+  }, [convertedChannels, setChannels]);
 
   const handleSelectGroup = (group: string | null) => {
     setSelectedGroup(group);
     setActiveTab("channels");
   };
 
-  const filteredChannels = (() => {
-    let filtered = [...channels];
-
-    // Apply group filtering based on current mode
+  // Memoize filtered channels to prevent unnecessary recalculations
+  const filteredChannels = useMemo(() => {
     if (groupDisplayMode === GroupDisplayMode.EnabledGroups) {
-      // Show only channels from enabled groups
-      filtered = filtered.filter((channel) =>
-        enabledGroups.has(channel.group_title),
-      );
-    } else if (
-      groupDisplayMode === GroupDisplayMode.AllGroups &&
-      selectedGroup
-    ) {
-      // Traditional single group selection from all groups
-      filtered = filtered.filter(
-        (channel) => channel.group_title === selectedGroup,
-      );
+      return channels.filter((channel) => enabledGroups.has(channel.group_title));
     }
-    // If AllGroups mode with no selection, show all channels
 
-    return filtered;
-  })();
+    if (groupDisplayMode === GroupDisplayMode.AllGroups && selectedGroup) {
+      return channels.filter((channel) => channel.group_title === selectedGroup);
+    }
 
-  // Filter groups based on search term for keyboard navigation
-  const filteredDisplayedGroups = groups.filter((group: string) =>
-    group.toLowerCase().includes(groupSearchTerm.toLowerCase()),
-  );
+    return channels;
+  }, [channels, groupDisplayMode, enabledGroups, selectedGroup]);
 
-  // Include "All Groups" option for AllGroups mode in keyboard navigation
-  const displayedGroups = (() => {
+  // Memoize filtered groups to prevent unnecessary recalculations
+  const displayedGroups = useMemo(() => {
+    const filteredGroups = groups.filter((group: string) =>
+      group.toLowerCase().includes(groupSearchTerm.toLowerCase())
+    );
+
     if (groupDisplayMode === GroupDisplayMode.AllGroups) {
-      return [null, ...filteredDisplayedGroups]; // null represents "All Groups"
+      return [null, ...filteredGroups];
     }
-    return filteredDisplayedGroups;
-  })();
 
-  const listItems = (() => {
+    return filteredGroups;
+  }, [groups, groupSearchTerm, groupDisplayMode]);
+
+  // Memoize list items based on active tab
+  const listItems = useMemo(() => {
     switch (activeTab) {
       case "channels":
         return filteredChannels;
@@ -240,90 +186,76 @@ function App() {
       default:
         return [];
     }
-  })();
+  }, [activeTab, filteredChannels, favorites, displayedGroups, history]);
 
-  const handleClearGroupSearch = () => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleClearGroupSearch = useCallback(() => {
     setGroupSearchTerm("");
     setFocusedIndex(0);
-  };
+  }, [setGroupSearchTerm, setFocusedIndex]);
 
-  const handleClearAllFilters = () => {
+  const handleClearAllFilters = useCallback(() => {
     clearSearch();
     setSelectedGroup(null);
     setGroupDisplayMode(GroupDisplayMode.EnabledGroups);
     setActiveTab("channels");
     setFocusedIndex(0);
-  };
+  }, [clearSearch, setSelectedGroup, setGroupDisplayMode, setActiveTab, setFocusedIndex]);
 
-  const handleSelectAllGroups = () => {
+  const handleSelectAllGroups = useCallback(() => {
     if (activeProfile) {
       selectAllGroups(groups, parseInt(activeProfile.id));
     }
-  };
+  }, [activeProfile, groups, selectAllGroups]);
 
-  const handleUnselectAllGroups = () => {
+  const handleUnselectAllGroups = useCallback(() => {
     if (activeProfile) {
       unselectAllGroups(groups, parseInt(activeProfile.id));
     }
-  };
+  }, [activeProfile, groups, unselectAllGroups]);
 
-  const handleToggleGroupDisplayMode = () => {
+  const handleToggleGroupDisplayMode = useCallback(() => {
     const newMode =
       groupDisplayMode === GroupDisplayMode.EnabledGroups
         ? GroupDisplayMode.AllGroups
         : GroupDisplayMode.EnabledGroups;
     setGroupDisplayMode(newMode);
     setFocusedIndex(0);
-  };
+  }, [groupDisplayMode, setGroupDisplayMode, setFocusedIndex]);
 
-  const handleToggleCurrentGroupSelection = () => {
+  const handleToggleCurrentGroupSelection = useCallback(() => {
     if (activeTab === "groups" && activeProfile) {
       const currentGroup = listItems[focusedIndex] as string | null;
       if (currentGroup) {
         toggleGroupEnabled(currentGroup, parseInt(activeProfile.id));
       }
     }
-  };
+  }, [activeTab, activeProfile, listItems, focusedIndex, toggleGroupEnabled]);
 
-  // Video control handlers
-  const handleToggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-    }
-  };
+  // Video control handlers - Removed as they're now handled in ModernVideoPlayer
+  const handleToggleMute = useCallback(() => {
+    // Placeholder for keyboard navigation compatibility
+  }, []);
 
-  const handleToggleFullscreen = () => {
-    if (videoRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        videoRef.current.requestFullscreen();
-      }
-    }
-  };
+  const handleToggleFullscreen = useCallback(() => {
+    // Placeholder for keyboard navigation compatibility
+  }, []);
 
-  const handleTogglePlayPause = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  };
+  const handleTogglePlayPause = useCallback(() => {
+    // Placeholder for keyboard navigation compatibility
+  }, []);
 
-  // Unified content selection handler
-  const handleContentSelect = (content: ContentItem | null) => {
+  // Memoized content selection handlers
+  const handleContentSelect = useCallback((content: ContentItem | null) => {
     if (content) {
       setSelectedXtreamContent(content);
       setSelectedChannel(null);
     } else {
       setSelectedXtreamContent(null);
     }
-  };
+  }, [setSelectedChannel]);
 
-  // Handlers for Xtream content
-  const handleMovieSelect = (movie: XtreamMoviesListing) => {
+  const handleMovieSelect = useCallback((movie: XtreamMoviesListing) => {
     handleContentSelect({
       type: 'xtream-movie',
       data: movie,
@@ -338,12 +270,32 @@ function App() {
         director: movie.director || undefined,
       }
     });
-  };
+  }, [handleContentSelect]);
 
   const handleMoviePlay = handleMovieSelect;
 
-  const handleEpisodePlay = (episode: XtreamEpisode, series: XtreamShow) => {
-    // Find next episode
+  const getNextEpisode = useCallback((currentEpisode: XtreamEpisode, series: XtreamShow): { episode: XtreamEpisode; series: XtreamShow } | null => {
+    const currentSeasonNum = currentEpisode.season;
+    const currentEpisodeNum = parseInt(currentEpisode.episode_num);
+
+    const currentSeasonEpisodes = series.episodes[currentSeasonNum.toString()] || [];
+    const nextInSeason = currentSeasonEpisodes.find(ep => parseInt(ep.episode_num) === currentEpisodeNum + 1);
+
+    if (nextInSeason) {
+      return { episode: nextInSeason, series };
+    }
+
+    const nextSeasonNum = currentSeasonNum + 1;
+    const nextSeasonEpisodes = series.episodes[nextSeasonNum.toString()] || [];
+
+    if (nextSeasonEpisodes.length > 0) {
+      return { episode: nextSeasonEpisodes[0], series };
+    }
+
+    return null;
+  }, []);
+
+  const handleEpisodePlay = useCallback((episode: XtreamEpisode, series: XtreamShow) => {
     const next = getNextEpisode(episode, series);
     setNextEpisode(next);
 
@@ -362,38 +314,13 @@ function App() {
         episodeNumber: parseInt(episode.episode_num),
       }
     });
-  };
+  }, [getNextEpisode, handleContentSelect]);
 
-  const getNextEpisode = (currentEpisode: XtreamEpisode, series: XtreamShow): { episode: XtreamEpisode; series: XtreamShow } | null => {
-    const currentSeasonNum = currentEpisode.season;
-    const currentEpisodeNum = parseInt(currentEpisode.episode_num);
-
-    // Get episodes from current season
-    const currentSeasonEpisodes = series.episodes[currentSeasonNum.toString()] || [];
-
-    // Find next episode in current season
-    const nextInSeason = currentSeasonEpisodes.find(ep => parseInt(ep.episode_num) === currentEpisodeNum + 1);
-
-    if (nextInSeason) {
-      return { episode: nextInSeason, series };
-    }
-
-    // Try next season
-    const nextSeasonNum = currentSeasonNum + 1;
-    const nextSeasonEpisodes = series.episodes[nextSeasonNum.toString()] || [];
-
-    if (nextSeasonEpisodes.length > 0) {
-      return { episode: nextSeasonEpisodes[0], series };
-    }
-
-    return null;
-  };
-
-  const handlePlayNextEpisode = () => {
+  const handlePlayNextEpisode = useCallback(() => {
     if (nextEpisode) {
       handleEpisodePlay(nextEpisode.episode, nextEpisode.series);
     }
-  };
+  }, [nextEpisode, handleEpisodePlay]);
 
   useKeyboardNavigation({
     activeTab,
