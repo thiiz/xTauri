@@ -1,11 +1,10 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useChannelStore,
   useProfileStore,
-  useSearchStore,
   useSettingsStore,
   useUIStore,
-  useXtreamContentStore,
+  useXtreamContentStore
 } from "../stores";
 import { type Channel } from "./ChannelList";
 import GroupList from "./GroupList";
@@ -28,8 +27,6 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
 
   const { activeTab } = useUIStore();
 
-  const { searchQuery, isSearching, setSearchQuery } = useSearchStore();
-
   const { channelListName } = useSettingsStore();
 
   const { activeProfile } = useProfileStore();
@@ -38,22 +35,57 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     movies,
     series,
     channels: xtreamChannels,
-    fetchChannels: fetchXtreamChannels
+    channelCategories,
+    filteredChannels: filteredXtreamChannels,
+    isLoadingChannelCategories,
+    fetchChannels: fetchXtreamChannels,
+    fetchChannelCategories,
+    searchChannels,
+    clearSearch: clearXtreamSearch
   } = useXtreamContentStore();
+
+  // Local state for channel category filter
+  const [selectedChannelCategoryId, setSelectedChannelCategoryId] = useState<string | null>(null);
+  const [channelSearchQuery, setChannelSearchQuery] = useState("");
 
   // selectedChannelListId was removed from channelStore
   // Channel list name functionality is disabled for now
 
-  // Load Xtream channels when profile becomes active
+  // Load Xtream channels and categories when profile becomes active
   useEffect(() => {
     if (activeProfile && activeTab === "channels") {
+      fetchChannelCategories(activeProfile.id);
       fetchXtreamChannels(activeProfile.id);
     }
-  }, [activeProfile, activeTab, fetchXtreamChannels]);
+  }, [activeProfile, activeTab, fetchXtreamChannels, fetchChannelCategories]);
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-  }, [setSearchQuery]);
+  // Display channels - use filtered if available, otherwise use all channels
+  const displayXtreamChannels = useMemo(() =>
+    filteredXtreamChannels.length > 0 ? filteredXtreamChannels : xtreamChannels,
+    [filteredXtreamChannels, xtreamChannels]
+  );
+
+  // Handle channel category filter
+  const handleChannelCategoryFilter = async (categoryId: string | null) => {
+    if (!activeProfile) return;
+    setSelectedChannelCategoryId(categoryId);
+    clearXtreamSearch();
+    setChannelSearchQuery("");
+    await fetchXtreamChannels(activeProfile.id, categoryId || undefined);
+  };
+
+  // Handle channel search
+  const handleChannelSearchChange = useCallback(async (query: string) => {
+    if (!activeProfile) return;
+    setChannelSearchQuery(query);
+
+    if (query.trim()) {
+      await searchChannels(activeProfile.id, query);
+    } else {
+      clearXtreamSearch();
+      await fetchXtreamChannels(activeProfile.id, selectedChannelCategoryId || undefined);
+    }
+  }, [activeProfile, selectedChannelCategoryId, searchChannels, clearXtreamSearch, fetchXtreamChannels]);
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -75,12 +107,12 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
   };
 
   // Combine traditional channels with Xtream channels
-  const combinedChannels = (() => {
+  const combinedChannels = useMemo(() => {
     const combined = [...filteredChannels];
 
-    if (activeProfile && xtreamChannels.length > 0) {
+    if (activeProfile && displayXtreamChannels.length > 0) {
       // Convert Xtream channels to traditional channel format
-      const convertedXtreamChannels = xtreamChannels.map(xtreamChannel => ({
+      const convertedXtreamChannels = displayXtreamChannels.map(xtreamChannel => ({
         name: xtreamChannel.name,
         logo: xtreamChannel.stream_icon,
         url: xtreamChannel.url || '',
@@ -94,13 +126,13 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
     }
 
     return combined;
-  })();
+  }, [filteredChannels, activeProfile, displayXtreamChannels]);
 
   const getTabSubtitle = () => {
     switch (activeTab) {
       case "channels":
         const totalChannels = combinedChannels.length;
-        const xtreamCount = activeProfile ? xtreamChannels.length : 0;
+        const xtreamCount = activeProfile ? displayXtreamChannels.length : 0;
         const traditionalCount = filteredChannels.length;
 
         if (xtreamCount > 0 && traditionalCount > 0) {
@@ -132,22 +164,56 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
   const renderContent = () => {
     switch (activeTab) {
       case "channels":
-        // Loading functionality was removed
-
         return (
           <>
-            <SearchBar
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder="Search channels (min 3 characters)..."
-              debounceDelay={300}
-            />
-            {searchQuery.length > 0 && searchQuery.length < 3 && (
-              <div className="search-status">
-                Type at least 3 characters to search...
+            <div className="channel-controls">
+              {activeProfile && channelCategories.length > 0 && (
+                <div className="category-filter">
+                  <label htmlFor="channel-category-select">Category:</label>
+                  <select
+                    id="channel-category-select"
+                    value={selectedChannelCategoryId || ''}
+                    onChange={(e) => handleChannelCategoryFilter(e.target.value || null)}
+                    disabled={isLoadingChannelCategories}
+                    aria-label="Filter channels by category"
+                  >
+                    <option value="">All Categories</option>
+                    {channelCategories.map((category) => (
+                      <option key={category.category_id} value={category.category_id}>
+                        {category.category_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <SearchBar
+                value={channelSearchQuery}
+                onChange={handleChannelSearchChange}
+                placeholder="Search channels..."
+                debounceDelay={300}
+              />
+            </div>
+
+            {selectedChannelCategoryId && (
+              <div className="filter-indicator" role="status" aria-live="polite">
+                <div className="filter-info">
+                  <span className="filter-label">Category:</span>
+                  <span className="filter-value">
+                    {channelCategories.find(c => c.category_id === selectedChannelCategoryId)?.category_name || selectedChannelCategoryId}
+                  </span>
+                </div>
+                <button
+                  className="clear-filter-btn"
+                  onClick={() => handleChannelCategoryFilter(null)}
+                  aria-label="Clear category filter"
+                  title="Clear category filter"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
               </div>
             )}
-            {isSearching && <div className="search-status">Searching...</div>}
+
             <div className="content-list">
               <VirtualChannelList channels={combinedChannels} />
             </div>
