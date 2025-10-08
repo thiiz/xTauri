@@ -11,9 +11,10 @@ import { SkeletonMovieGrid } from "./SkeletonLoader";
 interface VirtualMovieGridProps {
   onMovieSelect?: (movie: XtreamMoviesListing) => void;
   onMoviePlay?: (movie: XtreamMoviesListing) => void;
+  onContentSelect?: () => void;
 }
 
-export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: VirtualMovieGridProps) {
+export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContentSelect }: VirtualMovieGridProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<XtreamMoviesListing | null>(null);
   const [movieDetails, setMovieDetails] = useState<XtreamMovie | null>(null);
@@ -43,14 +44,15 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
   );
 
   useEffect(() => {
-    if (activeProfile) {
-      fetchMovieCategories(activeProfile.id);
-      fetchMovies(activeProfile.id);
-    }
-  }, [activeProfile]);
+    if (!activeProfile) return;
+
+    fetchMovieCategories(activeProfile.id);
+    fetchMovies(activeProfile.id);
+  }, [activeProfile, fetchMovieCategories, fetchMovies]);
 
   const handleCategoryFilter = async (categoryId: string | null) => {
     if (!activeProfile) return;
+
     setSelectedCategoryId(categoryId);
     setSelectedCategory(categoryId);
     clearSearch();
@@ -59,6 +61,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
 
   const handleSearchChange = useCallback(async (query: string) => {
     if (!activeProfile) return;
+
     setSearchQuery(query);
 
     if (query.trim()) {
@@ -71,19 +74,21 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
 
   const handleMovieClick = async (movie: XtreamMoviesListing) => {
     setSelectedMovie(movie);
+    onContentSelect?.();
     onMovieSelect?.(movie);
 
-    if (activeProfile) {
-      try {
-        const details = await fetchMovieDetails(activeProfile.id, movie.stream_id.toString());
-        setMovieDetails(details);
-      } catch (error) {
-        console.error('Failed to fetch movie details:', error);
-      }
+    if (!activeProfile) return;
+
+    try {
+      const details = await fetchMovieDetails(activeProfile.id, movie.stream_id.toString());
+      setMovieDetails(details);
+    } catch (error) {
+      console.error('Failed to fetch movie details:', error);
     }
   };
 
   const handleMoviePlay = (movie: XtreamMoviesListing) => {
+    onContentSelect?.();
     onMoviePlay?.(movie);
   };
 
@@ -93,9 +98,9 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
     handleMovieClick(movie);
   };
 
-  const formatRating = (rating: number): string => rating === 0 ? 'N/A' : rating.toFixed(1);
-  const formatYear = (year: string | null): string => year || 'N/A';
-  const formatRuntime = (runtime: number | null): string => {
+  const formatRating = (rating: number) => rating === 0 ? 'N/A' : rating.toFixed(1);
+  const formatYear = (year: string | null) => year || 'N/A';
+  const formatRuntime = (runtime: number | null) => {
     if (!runtime) return '';
     const hours = Math.floor(runtime / 60);
     const minutes = runtime % 60;

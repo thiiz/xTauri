@@ -17,9 +17,10 @@ export interface Channel {
 interface VirtualChannelListProps {
   channels?: Channel[];
   useXtreamData?: boolean;
+  onChannelSelect?: () => void;
 }
 
-export default function VirtualChannelList({ channels, useXtreamData = false }: VirtualChannelListProps) {
+export default function VirtualChannelList({ channels, useXtreamData = false, onChannelSelect }: VirtualChannelListProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showEPG, setShowEPG] = useState(false);
 
@@ -111,6 +112,7 @@ export default function VirtualChannelList({ channels, useXtreamData = false }: 
         onClick={() => {
           setSelectedChannel(channel as Channel);
           setFocusedIndex(index);
+          onChannelSelect?.();
           if (showEPG && xtreamChannel) {
             handleChannelEPG(xtreamChannel);
           }

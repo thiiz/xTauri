@@ -15,9 +15,10 @@ import VirtualSeriesBrowser from "./VirtualSeriesBrowser";
 
 interface MainContentProps {
   filteredChannels: Channel[];
+  onChannelSelect?: () => void;
 }
 
-export default function MainContent({ filteredChannels }: MainContentProps) {
+export default function MainContent({ filteredChannels, onChannelSelect }: MainContentProps) {
   // Get state from stores
   const {
     favorites,
@@ -215,14 +216,14 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             )}
 
             <div className="content-list">
-              <VirtualChannelList channels={combinedChannels} />
+              <VirtualChannelList channels={combinedChannels} onChannelSelect={onChannelSelect} />
             </div>
           </>
         );
       case "favorites":
         return (
           <div className="content-list">
-            <VirtualChannelList channels={favorites} />
+            <VirtualChannelList channels={favorites} onChannelSelect={onChannelSelect} />
           </div>
         );
       case "groups":
@@ -234,7 +235,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
       case "history":
         return (
           <div className="content-list">
-            <VirtualChannelList channels={history} />
+            <VirtualChannelList channels={history} onChannelSelect={onChannelSelect} />
           </div>
         );
       case "movies":

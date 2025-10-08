@@ -17,10 +17,7 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
   } = useChannelStore();
   const { setSelectedGroup, setActiveTab, setGroupDisplayMode } = useUIStore();
 
-  // Determine what content to show details for
-  const hasContent = selectedChannel || selectedXtreamContent;
-
-  if (!hasContent) {
+  if (!selectedChannel && !selectedXtreamContent) {
     return (
       <aside className="channel-details" role="complementary" aria-label="Content details">
         <div className="channel-details-content">
@@ -30,7 +27,6 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
     );
   }
 
-  // Handle channel details (existing functionality)
   if (selectedChannel && !selectedXtreamContent) {
     const isFavorite = favorites.some((fav) => fav.name === selectedChannel.name);
 
@@ -132,58 +128,35 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
     );
   }
 
-  // Handle Xtream content details (movies and series)
   if (selectedXtreamContent) {
-    const getContentTitle = (): string => {
-      switch (selectedXtreamContent.type) {
-        case 'xtream-movie':
-          const movie = selectedXtreamContent.data as XtreamMoviesListing;
-          return movie.title || movie.name;
-        case 'xtream-series':
-          const series = selectedXtreamContent.data as XtreamShow;
-          return selectedXtreamContent.metadata?.title || series.info?.title || series.info?.name || '';
-        default:
-          return '';
+    const getContentTitle = () => {
+      if (selectedXtreamContent.type === 'xtream-movie') {
+        const movie = selectedXtreamContent.data as XtreamMoviesListing;
+        return movie.title || movie.name;
       }
+      const series = selectedXtreamContent.data as XtreamShow;
+      return selectedXtreamContent.metadata?.title || series.info?.title || series.info?.name || '';
     };
 
-    const getContentImage = (): string => {
-      switch (selectedXtreamContent.type) {
-        case 'xtream-movie':
-          const movie = selectedXtreamContent.data as XtreamMoviesListing;
-          return movie.stream_icon;
-        case 'xtream-series':
-          const series = selectedXtreamContent.data as XtreamShow;
-          return series.info?.cover || '';
-        default:
-          return '';
+    const getContentImage = () => {
+      if (selectedXtreamContent.type === 'xtream-movie') {
+        return (selectedXtreamContent.data as XtreamMoviesListing).stream_icon;
       }
+      return (selectedXtreamContent.data as XtreamShow).info?.cover || '';
     };
 
-    const getContentType = (): string => {
-      switch (selectedXtreamContent.type) {
-        case 'xtream-movie':
-          return 'Movie';
-        case 'xtream-series':
-          return `Episode ${selectedXtreamContent.metadata?.episodeNumber || ''} - Season ${selectedXtreamContent.metadata?.seasonNumber || ''}`;
-        default:
-          return '';
-      }
+    const getContentType = () => {
+      if (selectedXtreamContent.type === 'xtream-movie') return 'Movie';
+      return `Episode ${selectedXtreamContent.metadata?.episodeNumber || ''} - Season ${selectedXtreamContent.metadata?.seasonNumber || ''}`;
     };
 
-    const formatRating = (rating?: number): string => {
-      if (!rating || rating === 0) return 'N/A';
-      return rating.toString();
-    };
+    const formatRating = (rating?: number) => (!rating || rating === 0) ? 'N/A' : rating.toString();
 
-    const formatDuration = (duration?: number): string => {
+    const formatDuration = (duration?: number) => {
       if (!duration) return 'N/A';
       const hours = Math.floor(duration / 60);
       const minutes = duration % 60;
-      if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      }
-      return `${minutes}m`;
+      return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     };
 
     return (

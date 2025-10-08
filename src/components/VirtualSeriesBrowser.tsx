@@ -9,11 +9,11 @@ import SearchBar from "./SearchBar";
 import { SkeletonEpisodeList, SkeletonMovieGrid } from "./SkeletonLoader";
 
 interface VirtualSeriesBrowserProps {
-  onSeriesSelect?: (series: XtreamShowListing) => void;
   onEpisodePlay?: (episode: XtreamEpisode, series: XtreamShow) => void;
+  onContentSelect?: () => void;
 }
 
-export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: VirtualSeriesBrowserProps) {
+export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }: VirtualSeriesBrowserProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<XtreamShowListing | null>(null);
   const [seriesDetails, setSeriesDetails] = useState<XtreamShow | null>(null);
@@ -43,11 +43,11 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
   );
 
   useEffect(() => {
-    if (activeProfile) {
-      fetchSeriesCategories(activeProfile.id);
-      fetchSeries(activeProfile.id);
-    }
-  }, [activeProfile]);
+    if (!activeProfile) return;
+
+    fetchSeriesCategories(activeProfile.id);
+    fetchSeries(activeProfile.id);
+  }, [activeProfile, fetchSeriesCategories, fetchSeries]);
 
   useEffect(() => {
     if (seriesDetails && seriesDetails.seasons.length > 0) {
@@ -57,6 +57,7 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
 
   const handleCategoryFilter = async (categoryId: string | null) => {
     if (!activeProfile) return;
+
     setSelectedCategoryId(categoryId);
     setSelectedCategory(categoryId);
     setSearchQuery("");
@@ -65,33 +66,34 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
 
   const handleSearchChange = useCallback(async (query: string) => {
     if (!activeProfile) return;
+
     setSearchQuery(query);
 
     if (query.trim()) {
       await searchSeries(activeProfile.id, query);
     } else {
-      setSearchQuery("");
       await fetchSeries(activeProfile.id, selectedCategoryId || undefined);
     }
   }, [activeProfile, selectedCategoryId, searchSeries, fetchSeries]);
 
   const handleSeriesClick = async (seriesItem: XtreamShowListing) => {
     setSelectedSeries(seriesItem);
-    onSeriesSelect?.(seriesItem);
+    onContentSelect?.();
 
-    if (activeProfile) {
-      try {
-        const details = await fetchSeriesDetails(activeProfile.id, seriesItem.series_id.toString());
-        setSeriesDetails(details);
-        setViewMode('details');
-      } catch (error) {
-        console.error('Failed to fetch series details:', error);
-      }
+    if (!activeProfile) return;
+
+    try {
+      const details = await fetchSeriesDetails(activeProfile.id, seriesItem.series_id.toString());
+      setSeriesDetails(details);
+      setViewMode('details');
+    } catch (error) {
+      console.error('Failed to fetch series details:', error);
     }
   };
 
   const handleEpisodePlay = (episode: XtreamEpisode) => {
     if (seriesDetails) {
+      onContentSelect?.();
       onEpisodePlay?.(episode, seriesDetails);
     }
   };
@@ -103,15 +105,15 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
     setSelectedSeason(null);
   };
 
-  const formatRating = (rating: string | number): string => {
+  const formatRating = (rating: string | number) => {
     if (!rating || rating === '0') return 'N/A';
     const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
     return numRating.toFixed(1);
   };
 
-  const formatYear = (year: string | null): string => year || 'N/A';
+  const formatYear = (year: string | null) => year || 'N/A';
 
-  const formatEpisodeRuntime = (runtime: string | null): string => {
+  const formatEpisodeRuntime = (runtime: string | null) => {
     if (!runtime) return '';
     const minutes = parseInt(runtime);
     if (isNaN(minutes)) return runtime;
@@ -120,7 +122,7 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const getSeasonEpisodes = (): XtreamEpisode[] => {
+  const getSeasonEpisodes = () => {
     if (!seriesDetails || !selectedSeason) return [];
     return seriesDetails.episodes[selectedSeason.season_number.toString()] || [];
   };

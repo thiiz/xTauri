@@ -22,7 +22,7 @@ import {
   useUIStore,
   useXtreamContentStore,
 } from "./stores";
-import type { XtreamEpisode, XtreamMoviesListing, XtreamShow, XtreamShowListing } from "./types/types";
+import type { XtreamEpisode, XtreamMoviesListing, XtreamShow } from "./types/types";
 
 function App() {
   // Zustand store hooks
@@ -101,45 +101,40 @@ function App() {
 
   // Load Xtream content when active profile changes
   useEffect(() => {
+    if (!activeProfile) {
+      setChannels([]);
+      return;
+    }
+
     const loadXtreamContent = async () => {
-      if (!activeProfile) {
-        setChannels([]);
-        return;
-      }
-
       try {
-        // Fetch channel categories first
-        await fetchChannelCategories(activeProfile.id);
-
-        // Fetch all channels
-        await fetchXtreamChannels(activeProfile.id);
-
-        // Load favorites and history
-        // Note: These are now loaded on demand
+        await Promise.all([
+          fetchChannelCategories(activeProfile.id),
+          fetchXtreamChannels(activeProfile.id)
+        ]);
       } catch (error) {
         console.error("Failed to load Xtream content:", error);
       }
     };
 
     loadXtreamContent();
-  }, [activeProfile]);
+  }, [activeProfile, fetchChannelCategories, fetchXtreamChannels, setChannels]);
 
   // Sync Xtream channels to channel store
   useEffect(() => {
-    if (xtreamChannels.length > 0) {
-      // Convert Xtream channels to Channel format
-      const convertedChannels: Channel[] = xtreamChannels.map(ch => ({
-        name: ch.name,
-        url: ch.url || '',
-        group_title: ch.category_id,
-        logo: ch.stream_icon,
-        tvg_id: ch.epg_channel_id || '',
-        resolution: 'HD',
-        extra_info: '',
-      }));
-      setChannels(convertedChannels);
-    }
-  }, [xtreamChannels]);
+    if (xtreamChannels.length === 0) return;
+
+    const convertedChannels: Channel[] = xtreamChannels.map(ch => ({
+      name: ch.name,
+      url: ch.url || '',
+      group_title: ch.category_id,
+      logo: ch.stream_icon,
+      tvg_id: ch.epg_channel_id || '',
+      resolution: 'HD',
+      extra_info: '',
+    }));
+    setChannels(convertedChannels);
+  }, [xtreamChannels, setChannels]);
 
   useEffect(() => {
     if (hlsRef.current) {
@@ -312,9 +307,19 @@ function App() {
     }
   };
 
+  // Unified content selection handler
+  const handleContentSelect = (content: ContentItem | null) => {
+    if (content) {
+      setSelectedXtreamContent(content);
+      setSelectedChannel(null);
+    } else {
+      setSelectedXtreamContent(null);
+    }
+  };
+
   // Handlers for Xtream content
   const handleMovieSelect = (movie: XtreamMoviesListing) => {
-    const contentItem: ContentItem = {
+    handleContentSelect({
       type: 'xtream-movie',
       data: movie,
       metadata: {
@@ -327,21 +332,13 @@ function App() {
         cast: movie.cast || undefined,
         director: movie.director || undefined,
       }
-    };
-    setSelectedXtreamContent(contentItem);
-    setSelectedChannel(null);
+    });
   };
 
-  const handleMoviePlay = (movie: XtreamMoviesListing) => {
-    handleMovieSelect(movie);
-  };
-
-  const handleSeriesSelect = (series: XtreamShowListing) => {
-    console.log('Series selected:', series.name);
-  };
+  const handleMoviePlay = handleMovieSelect;
 
   const handleEpisodePlay = (episode: XtreamEpisode, series: XtreamShow) => {
-    const contentItem: ContentItem = {
+    handleContentSelect({
       type: 'xtream-series',
       data: {
         ...series,
@@ -355,9 +352,7 @@ function App() {
         seasonNumber: episode.season,
         episodeNumber: parseInt(episode.episode_num),
       }
-    };
-    setSelectedXtreamContent(contentItem);
-    setSelectedChannel(null);
+    });
   };
 
   useKeyboardNavigation({
@@ -450,6 +445,7 @@ function App() {
                 <VirtualMovieGrid
                   onMovieSelect={handleMovieSelect}
                   onMoviePlay={handleMoviePlay}
+                  onContentSelect={() => setSelectedChannel(null)}
                 />
               </div>
             </div>
@@ -476,8 +472,8 @@ function App() {
               </div>
               <div className="series-container">
                 <VirtualSeriesBrowser
-                  onSeriesSelect={handleSeriesSelect}
                   onEpisodePlay={handleEpisodePlay}
+                  onContentSelect={() => setSelectedChannel(null)}
                 />
               </div>
             </div>
@@ -497,7 +493,10 @@ function App() {
           </>
         ) : (
           <>
-            <MainContent filteredChannels={filteredChannels} />
+            <MainContent
+              filteredChannels={filteredChannels}
+              onChannelSelect={() => handleContentSelect(null)}
+            />
 
             <div
               className={`video-section ${!enablePreview ? "preview-disabled" : ""}`}
