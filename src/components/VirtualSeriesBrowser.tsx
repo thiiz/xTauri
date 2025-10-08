@@ -283,7 +283,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
           ) : selectedSeason && (
             <div className="episodes-grid">
               <Virtuoso
-                style={{ height: '600px' }}
+                style={{ height: '400px' }}
                 totalCount={seasonEpisodes.length}
                 itemContent={(index) => {
                   const episode = seasonEpisodes[index];
