@@ -266,69 +266,88 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
       {showDetails && selectedMovie && (
         <div className="movie-details-modal" onClick={() => setShowDetails(false)}>
           <div className="movie-details-content" onClick={(e) => e.stopPropagation()}>
-            <div className="movie-details-header">
-              <h2>{selectedMovie.name}</h2>
-              <button className="close-button" onClick={() => setShowDetails(false)} title="Close">×</button>
-            </div>
-
-            <div className="movie-details-body">
-              <div className="movie-details-poster">
-                <CachedImage src={selectedMovie.stream_icon} alt={selectedMovie.name} className="details-poster" />
+            {/* Hero Section with Background */}
+            <div className="movie-hero-section">
+              <div className="movie-hero-backdrop">
+                <CachedImage
+                  src={selectedMovie.stream_icon}
+                  alt=""
+                  className="movie-backdrop-image"
+                />
+                <div className="movie-hero-overlay"></div>
               </div>
 
-              <div className="movie-details-info">
-                <div className="movie-details-meta">
-                  <div className="meta-item">
-                    <span className="meta-label">Year:</span>
-                    <span className="meta-value">{formatYear(selectedMovie.year)}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="meta-label">Rating:</span>
-                    <span className="meta-value">★ {formatRating(selectedMovie.rating)}</span>
-                  </div>
-                  {selectedMovie.episode_run_time && (
-                    <div className="meta-item">
-                      <span className="meta-label">Runtime:</span>
-                      <span className="meta-value">{formatRuntime(selectedMovie.episode_run_time)}</span>
-                    </div>
-                  )}
-                  {selectedMovie.genre && (
-                    <div className="meta-item">
-                      <span className="meta-label">Genre:</span>
-                      <span className="meta-value">{selectedMovie.genre}</span>
-                    </div>
-                  )}
-                  {movieDetails?.info?.director && (
-                    <div className="meta-item">
-                      <span className="meta-label">Director:</span>
-                      <span className="meta-value">{movieDetails.info.director}</span>
-                    </div>
-                  )}
-                  {movieDetails?.info?.cast && (
-                    <div className="meta-item">
-                      <span className="meta-label">Cast:</span>
-                      <span className="meta-value">{movieDetails.info.cast}</span>
-                    </div>
-                  )}
-                </div>
+              <div className="movie-hero-content">
+                <button className="close-button-hero" onClick={() => setShowDetails(false)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
 
-                {(selectedMovie.plot || movieDetails?.info?.plot) && (
-                  <div className="movie-plot">
-                    <h4>Plot</h4>
-                    <p>{selectedMovie.plot || movieDetails?.info?.plot}</p>
+                <div className="movie-hero-info">
+                  <div className="movie-poster-compact">
+                    <CachedImage src={selectedMovie.stream_icon} alt={selectedMovie.name} className="movie-poster-image" />
                   </div>
-                )}
 
-                <div className="movie-actions">
-                  <button
-                    className="play-button-large"
-                    onClick={() => {
-                      handleMoviePlay(selectedMovie);
-                      setShowDetails(false);
-                    }}
-                  >
-                    ▶ Play Movie
-                  </button>
+                  <div className="movie-hero-details">
+                    <h1 className="movie-hero-title">{selectedMovie.name}</h1>
+
+                    <div className="movie-hero-meta">
+                      {selectedMovie.year && (
+                        <span className="meta-badge">{formatYear(selectedMovie.year)}</span>
+                      )}
+                      {selectedMovie.rating && selectedMovie.rating !== 0 && (
+                        <span className="meta-badge rating">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                          {formatRating(selectedMovie.rating)}
+                        </span>
+                      )}
+                      {selectedMovie.genre && (
+                        <span className="meta-badge genre">{selectedMovie.genre}</span>
+                      )}
+                      {selectedMovie.episode_run_time && (
+                        <span className="meta-badge">{formatRuntime(selectedMovie.episode_run_time)}</span>
+                      )}
+                    </div>
+
+                    {(selectedMovie.plot || movieDetails?.info?.plot) && (
+                      <p className="movie-hero-plot">{selectedMovie.plot || movieDetails?.info?.plot}</p>
+                    )}
+
+                    {(movieDetails?.info?.director || movieDetails?.info?.cast) && (
+                      <div className="movie-hero-credits">
+                        {movieDetails?.info?.director && (
+                          <div className="credit-item">
+                            <span className="credit-label">Director:</span>
+                            <span className="credit-value">{movieDetails.info.director}</span>
+                          </div>
+                        )}
+                        {movieDetails?.info?.cast && (
+                          <div className="credit-item">
+                            <span className="credit-label">Cast:</span>
+                            <span className="credit-value">{movieDetails.info.cast}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="movie-hero-actions">
+                      <button
+                        className="play-button-hero"
+                        onClick={() => {
+                          handleMoviePlay(selectedMovie);
+                          setShowDetails(false);
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        Play Movie
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
