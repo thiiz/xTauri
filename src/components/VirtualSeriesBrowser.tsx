@@ -110,7 +110,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect, c
   const formatRating = (rating: string | number) => {
     if (!rating || rating === '0') return 'N/A';
     const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
-    return numRating.toFixed(1);
+    return isNaN(numRating) ? 'N/A' : numRating.toFixed(1);
   };
 
   const formatYear = (year: string | null) => year || 'N/A';
