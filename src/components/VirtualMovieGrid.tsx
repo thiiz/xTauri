@@ -114,31 +114,41 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
     const row = movieRows[index];
 
     return (
-      <div className="virtual-movie-row">
+      <div className="virtual-movie-row" role="list">
         {row.map((movie) => (
-          <div
+          <article
             key={movie.stream_id}
             className={`virtual-movie-card ${selectedMovie?.stream_id === movie.stream_id ? 'selected' : ''}`}
             onClick={() => handleMovieClick(movie)}
+            role="listitem"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleMovieClick(movie);
+              }
+            }}
+            aria-label={`${movie.name}, ${formatYear(movie.year)}, Rating ${formatRating(movie.rating)}`}
           >
             <div className="movie-poster-container">
               <CachedImage
                 src={movie.stream_icon}
-                alt={movie.name}
+                alt={`${movie.name} poster`}
                 className="movie-poster"
                 lazy={true}
                 rootMargin="200px"
               />
-              <div className="movie-overlay">
+              <div className="movie-overlay" aria-hidden="true">
                 <button
                   className="play-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMoviePlay(movie);
                   }}
-                  title="Play movie"
+                  aria-label={`Play ${movie.name}`}
+                  title={`Play ${movie.name}`}
                 >
-                  ▶
+                  <span aria-hidden="true">▶</span>
                 </button>
                 <button
                   className="details-button"
@@ -146,35 +156,44 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
                     e.stopPropagation();
                     handleShowDetails(movie);
                   }}
-                  title="Show details"
+                  aria-label={`Show details for ${movie.name}`}
+                  title={`Show details for ${movie.name}`}
                 >
-                  ℹ
+                  <span aria-hidden="true">ℹ</span>
                 </button>
               </div>
             </div>
 
             <div className="movie-info">
               <h3 className="movie-title">{movie.name}</h3>
-              <div className="movie-meta">
-                <span className="movie-year">{formatYear(movie.year)}</span>
-                <span className="movie-rating">★ {formatRating(movie.rating)}</span>
+              <div className="movie-meta" aria-label="Movie metadata">
+                <span className="movie-year" aria-label={`Year ${formatYear(movie.year)}`}>
+                  {formatYear(movie.year)}
+                </span>
+                <span className="movie-rating" aria-label={`Rating ${formatRating(movie.rating)} out of 10`}>
+                  ★ {formatRating(movie.rating)}
+                </span>
                 {movie.episode_run_time && (
-                  <span className="movie-runtime">{formatRuntime(movie.episode_run_time)}</span>
+                  <span className="movie-runtime" aria-label={`Runtime ${formatRuntime(movie.episode_run_time)}`}>
+                    {formatRuntime(movie.episode_run_time)}
+                  </span>
                 )}
               </div>
               {movie.genre && (
-                <div className="movie-genre">{movie.genre}</div>
+                <div className="movie-genre" aria-label={`Genre ${movie.genre}`}>
+                  {movie.genre}
+                </div>
               )}
             </div>
-          </div>
+          </article>
         ))}
       </div>
     );
   }, [movieRows, selectedMovie]);
 
   return (
-    <div className="virtual-movie-grid-container">
-      <div className="movie-controls">
+    <div className="virtual-movie-grid-container" role="region" aria-label="Movies browser">
+      <div className="movie-controls" role="toolbar" aria-label="Movie filters and search">
         <div className="category-filter">
           <label htmlFor="movie-category-select">Category:</label>
           <select
@@ -182,6 +201,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
             value={selectedCategoryId || ''}
             onChange={(e) => handleCategoryFilter(e.target.value || null)}
             disabled={isLoadingMovieCategories}
+            aria-label="Filter movies by category"
           >
             <option value="">All Categories</option>
             {movieCategories.map((category) => (
@@ -201,32 +221,37 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
       </div>
 
       {selectedCategoryId && (
-        <div className="filter-indicator">
+        <div className="filter-indicator" role="status" aria-live="polite">
           <div className="filter-info">
             <span className="filter-label">Category:</span>
             <span className="filter-value">
               {movieCategories.find(c => c.category_id === selectedCategoryId)?.category_name || selectedCategoryId}
             </span>
           </div>
-          <button className="clear-filter-btn" onClick={() => handleCategoryFilter(null)} title="Clear category filter">
-            ×
+          <button
+            className="clear-filter-btn"
+            onClick={() => handleCategoryFilter(null)}
+            aria-label="Clear category filter"
+            title="Clear category filter"
+          >
+            <span aria-hidden="true">×</span>
           </button>
         </div>
       )}
 
       {isLoadingMovies && (
-        <div className="loading-indicator">
+        <div className="loading-indicator" role="status" aria-live="polite" aria-busy="true">
           <span>Loading movies...</span>
         </div>
       )}
 
       {moviesError && (
-        <div className="error-indicator">
+        <div className="error-indicator" role="alert" aria-live="assertive">
           <span>Error loading movies: {moviesError}</span>
         </div>
       )}
 
-      <div className="pagination-info">
+      <div className="pagination-info" role="status" aria-live="polite">
         <span className="item-count">{displayMovies.length} movies available</span>
       </div>
 

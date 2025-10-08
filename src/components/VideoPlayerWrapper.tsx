@@ -4,7 +4,6 @@ import { useProfileStore } from "../stores/profileStore";
 import type { XtreamChannel, XtreamMoviesListing, XtreamShow } from "../types/types";
 import type { Channel } from "./ChannelList";
 import EnhancedVideoPlayer from "./EnhancedVideoPlayer";
-import VideoPlayer from "./VideoPlayer";
 
 interface ContentItem {
   type: 'channel' | 'xtream-channel' | 'xtream-movie' | 'xtream-series';
@@ -72,7 +71,7 @@ const VideoPlayerWrapper = forwardRef<HTMLVideoElement, VideoPlayerWrapperProps>
     }
 
     // Fall back to legacy video player for traditional channels
-    return <VideoPlayer ref={ref} />;
+    return <EnhancedVideoPlayer ref={ref} />;
   }
 );
 

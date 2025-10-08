@@ -137,46 +137,62 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
     const row = seriesRows[index];
 
     return (
-      <div className="virtual-series-row">
+      <div className="virtual-series-row" role="list">
         {row.map((seriesItem) => (
-          <div
+          <article
             key={seriesItem.series_id}
             className={`virtual-series-card ${selectedSeries?.series_id === seriesItem.series_id ? 'selected' : ''}`}
             onClick={() => handleSeriesClick(seriesItem)}
+            role="listitem"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSeriesClick(seriesItem);
+              }
+            }}
+            aria-label={`${seriesItem.name}, ${formatYear(seriesItem.year)}, Rating ${formatRating(seriesItem.rating)}`}
           >
             <div className="series-poster-container">
               <CachedImage
                 src={seriesItem.cover}
-                alt={seriesItem.name}
+                alt={`${seriesItem.name} poster`}
                 className="series-poster"
                 lazy={true}
                 rootMargin="200px"
               />
-              <div className="series-overlay">
+              <div className="series-overlay" aria-hidden="true">
                 <button
                   className="view-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSeriesClick(seriesItem);
                   }}
-                  title="View series"
+                  aria-label={`View ${seriesItem.name} details`}
+                  title={`View ${seriesItem.name} details`}
                 >
-                  👁
+                  <span aria-hidden="true">👁</span>
                 </button>
               </div>
             </div>
 
             <div className="series-info">
               <h3 className="series-title">{seriesItem.name}</h3>
-              <div className="series-meta">
-                <span className="series-year">{formatYear(seriesItem.year)}</span>
-                <span className="series-rating">★ {formatRating(seriesItem.rating)}</span>
+              <div className="series-meta" aria-label="Series metadata">
+                <span className="series-year" aria-label={`Year ${formatYear(seriesItem.year)}`}>
+                  {formatYear(seriesItem.year)}
+                </span>
+                <span className="series-rating" aria-label={`Rating ${formatRating(seriesItem.rating)} out of 10`}>
+                  ★ {formatRating(seriesItem.rating)}
+                </span>
               </div>
               {seriesItem.genre && (
-                <div className="series-genre">{seriesItem.genre}</div>
+                <div className="series-genre" aria-label={`Genre ${seriesItem.genre}`}>
+                  {seriesItem.genre}
+                </div>
               )}
             </div>
-          </div>
+          </article>
         ))}
       </div>
     );

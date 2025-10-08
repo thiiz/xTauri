@@ -1,4 +1,4 @@
-/* Virtual Movies & Series Grid Styles */
+/* Virtual Movies & Series Grid Styles - Optimized for UI/UX */
 
 /* Container */
 .virtual-movie-grid-container,
@@ -11,6 +11,7 @@
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
 }
 
 /* Controls */
@@ -55,9 +56,15 @@
 }
 
 .category-filter select:focus {
-  outline: none;
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.category-filter select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Virtual Grid Rows */
@@ -635,65 +642,152 @@
   box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
 }
 
-/* Responsive */
-@media (max-width: 1400px) {
-  .virtual-movie-row,
-  .virtual-series-row {
-    grid-template-columns: repeat(5, 1fr);
-  }
-}
+/* Responsive Design - Mobile First Approach */
 
-@media (max-width: 1200px) {
-  .virtual-movie-row,
-  .virtual-series-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 992px) {
-  .virtual-movie-row,
-  .virtual-series-row {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .series-info-section,
-  .movie-details-body {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
+/* Extra Small Devices (phones, less than 576px) */
+@media (max-width: 575px) {
   .virtual-movie-row,
   .virtual-series-row {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 8px 12px;
+    gap: 8px;
+    padding: 8px;
   }
 
   .movie-controls,
   .series-controls {
     flex-direction: column;
     align-items: stretch;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .category-filter {
+    width: 100%;
+  }
+
+  .category-filter select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .movie-title,
+  .series-title {
+    font-size: 12px;
+  }
+
+  .play-button,
+  .details-button,
+  .view-button {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
   }
 
   .virtual-episode-item {
     flex-direction: column;
+    padding: 12px;
   }
 
   .episode-thumbnail {
     width: 100%;
-    height: 180px;
+    height: 160px;
+  }
+
+  .series-info-section,
+  .movie-details-body {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .series-poster-image,
+  .details-poster {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  .season-tabs {
+    justify-content: center;
+  }
+
+  .season-tab {
+    flex: 1;
+    min-width: 100px;
   }
 }
 
-@media (max-width: 480px) {
+/* Small Devices (landscape phones, 576px and up) */
+@media (min-width: 576px) and (max-width: 767px) {
   .virtual-movie-row,
   .virtual-series-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 10px 12px;
   }
 }
 
-/* Dark Mode */
+/* Medium Devices (tablets, 768px and up) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .virtual-movie-row,
+  .virtual-series-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 12px 16px;
+  }
+
+  .series-info-section,
+  .movie-details-body {
+    grid-template-columns: 250px 1fr;
+  }
+}
+
+/* Large Devices (desktops, 992px and up) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .virtual-movie-row,
+  .virtual-series-row {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Extra Large Devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .virtual-movie-row,
+  .virtual-series-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* XXL Devices (larger desktops, 1400px and up) */
+@media (min-width: 1400px) {
+  .virtual-movie-row,
+  .virtual-series-row {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .movie-poster,
+  .series-poster,
+  .episode-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark Mode - Enhanced Contrast */
 @media (prefers-color-scheme: dark) {
   .virtual-movie-grid-container,
   .virtual-series-browser-container,
@@ -728,8 +822,101 @@
     border-color: #4b5563;
   }
 
+  .category-filter select:focus,
+  .season-tab:focus,
+  .back-button:focus {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+  }
+
   .virtual-episode-item {
     background: #374151;
     border-color: #4b5563;
   }
+
+  .movie-year,
+  .movie-rating,
+  .movie-runtime,
+  .series-year,
+  .series-rating,
+  .episode-date,
+  .episode-duration,
+  .episode-rating {
+    background: #374151;
+    color: #d1d5db;
+  }
+
+  .movie-rating,
+  .series-rating,
+  .episode-rating {
+    background: #92400e;
+    color: #fbbf24;
+  }
+
+  .play-button,
+  .details-button,
+  .view-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .play-button:hover,
+  .details-button:hover,
+  .view-button:hover {
+    background: #6366f1;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .virtual-movie-card,
+  .virtual-series-card {
+    border-width: 3px;
+  }
+
+  .virtual-movie-card:focus,
+  .virtual-series-card:focus,
+  .play-button:focus,
+  .details-button:focus,
+  .view-button:focus {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  .movie-title,
+  .series-title,
+  .episode-title {
+    font-weight: 700;
+  }
+}
+
+/* Focus Visible - Enhanced Keyboard Navigation */
+.virtual-movie-card:focus-visible,
+.virtual-series-card:focus-visible,
+.play-button:focus-visible,
+.details-button:focus-visible,
+.view-button:focus-visible,
+.season-tab:focus-visible,
+.episode-play-button:focus-visible {
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+/* Skip to Content Link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #6366f1;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 0;
 }

@@ -9,11 +9,11 @@ import {
 } from "../stores";
 import { type Channel } from "./ChannelList";
 import GroupList from "./GroupList";
-import MovieGrid from "./MovieGrid";
 import ProfileManager from "./ProfileManager";
 import SearchBar from "./SearchBar";
-import SeriesBrowser from "./SeriesBrowser";
 import VirtualChannelList from "./VirtualChannelList";
+import VirtualSeriesBrowser from "./VirtualSeriesBrowser";
+import VirtualMovieGrid from "./VirtualMovieGrid";
 
 interface MainContentProps {
   filteredChannels: Channel[];
@@ -185,7 +185,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             </div>
           );
         }
-        return <MovieGrid />;
+        return <VirtualMovieGrid />;
       case "series":
         if (!activeProfile) {
           return (
@@ -195,7 +195,7 @@ export default function MainContent({ filteredChannels }: MainContentProps) {
             </div>
           );
         }
-        return <SeriesBrowser />;
+        return <VirtualSeriesBrowser />;
       case "profiles":
         return <ProfileManager />;
 

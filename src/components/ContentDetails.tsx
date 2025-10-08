@@ -22,11 +22,11 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
 
   if (!hasContent) {
     return (
-      <div className="channel-details">
+      <aside className="channel-details" role="complementary" aria-label="Content details">
         <div className="channel-details-content">
           <p>No content selected</p>
         </div>
-      </div>
+      </aside>
     );
   }
 
@@ -43,43 +43,44 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
     };
 
     return (
-      <div className="channel-details">
+      <aside className="channel-details" role="complementary" aria-label="Channel details">
         <div className="channel-details-content">
           <div className="channel-main-info">
             <CachedImage
               src={selectedChannel.logo}
-              alt={selectedChannel.name}
+              alt={`${selectedChannel.name} logo`}
               className="channel-details-logo"
             />
             <div className="channel-meta">
               <div className="channel-title-row">
                 <h1 className="channel-details-title">{selectedChannel.name}</h1>
-                <span className="channel-number-badge">
+                <span className="channel-number-badge" aria-label={`Channel ${channels.indexOf(selectedChannel) + 1}`}>
                   CH {channels.indexOf(selectedChannel) + 1}
                 </span>
               </div>
-              <div className="channel-meta-row">
-                <div className="meta-item">
-                  <SignalIcon />
+              <div className="channel-meta-row" aria-label="Channel metadata">
+                <div className="meta-item" aria-label={`Resolution ${selectedChannel.resolution || "HD"}`}>
+                  <SignalIcon aria-hidden="true" />
                   {selectedChannel.resolution || "HD"}
                 </div>
-                <div className="meta-item">
-                  <StarIcon />
+                <div className="meta-item" aria-label="Rating 4.5 out of 5">
+                  <StarIcon aria-hidden="true" />
                   4.5
                 </div>
-                <span className="badge badge-category">
+                <span className="badge badge-category" aria-label={`Category ${selectedChannel.group_title}`}>
                   {selectedChannel.group_title}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="separator"></div>
+          <div className="separator" role="separator" aria-hidden="true"></div>
 
           <div className="actions-section">
             <button
               className="secondary-button"
               onClick={() => toggleFavorite(selectedChannel)}
+              aria-label={isFavorite ? `Remove ${selectedChannel.name} from favorites` : `Add ${selectedChannel.name} to favorites`}
             >
               {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
             </button>
@@ -127,7 +128,7 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
             </div>
           </div>
         </div>
-      </div>
+      </aside>
     );
   }
 
