@@ -12,6 +12,8 @@ interface SettingsState {
   muteOnStart: boolean;
   showControls: boolean;
   autoplay: boolean;
+  volume: number; // 0-1
+  isMuted: boolean;
 
   // Cache settings
   cacheDuration: number; // in hours
@@ -44,6 +46,12 @@ interface SettingsState {
   setAutoplay: (enabled: boolean) => void;
   saveAutoplay: () => Promise<void>;
   fetchAutoplay: () => Promise<void>;
+  setVolume: (volume: number) => void;
+  saveVolume: () => Promise<void>;
+  fetchVolume: () => Promise<void>;
+  setIsMuted: (muted: boolean) => void;
+  saveIsMuted: () => Promise<void>;
+  fetchIsMuted: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -54,6 +62,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   muteOnStart: false,
   showControls: true,
   autoplay: false,
+  volume: 1,
+  isMuted: false,
   cacheDuration: 24,
 
   // Basic setters
@@ -63,6 +73,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMuteOnStart: (muteOnStart) => set({ muteOnStart }),
   setShowControls: (showControls) => set({ showControls }),
   setAutoplay: (autoplay) => set({ autoplay }),
+  setVolume: (volume) => set({ volume }),
+  setIsMuted: (isMuted) => set({ isMuted }),
   setCacheDuration: (cacheDuration) => set({ cacheDuration }),
 
   // Channel list operations
@@ -146,6 +158,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   fetchAutoplay: async () => {
     const enabled = await invoke<boolean>("get_autoplay");
     set({ autoplay: enabled });
+  },
+
+  saveVolume: async () => {
+    const { volume } = get();
+    await invoke("set_volume", { volume });
+  },
+
+  fetchVolume: async () => {
+    const volume = await invoke<number>("get_volume");
+    set({ volume });
+  },
+
+  saveIsMuted: async () => {
+    const { isMuted } = get();
+    await invoke("set_is_muted", { muted: isMuted });
+  },
+
+  fetchIsMuted: async () => {
+    const muted = await invoke<boolean>("get_is_muted");
+    set({ isMuted: muted });
   },
 
   // Cache settings actions

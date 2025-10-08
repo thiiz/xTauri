@@ -162,6 +162,10 @@ pub fn run() {
             set_show_controls,
             get_autoplay,
             set_autoplay,
+            get_volume,
+            set_volume,
+            get_is_muted,
+            set_is_muted,
             // Playlist commands
             get_channel_lists,
             add_channel_list,

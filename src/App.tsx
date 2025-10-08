@@ -71,6 +71,8 @@ function App() {
     fetchMuteOnStart,
     fetchShowControls,
     fetchCacheDuration,
+    fetchVolume,
+    fetchIsMuted,
   } = useSettingsStore();
 
   // Refs for video player
@@ -93,6 +95,8 @@ function App() {
           fetchMuteOnStart(),
           fetchShowControls(),
           fetchCacheDuration(),
+          fetchVolume(),
+          fetchIsMuted(),
         ]);
       } catch (error) {
         console.error("Failed to load settings:", error);
@@ -100,7 +104,7 @@ function App() {
     };
 
     loadSettings();
-  }, [fetchEnablePreview, fetchAutoplay, fetchMuteOnStart, fetchShowControls, fetchCacheDuration]);
+  }, [fetchEnablePreview, fetchAutoplay, fetchMuteOnStart, fetchShowControls, fetchCacheDuration, fetchVolume, fetchIsMuted]);
 
   // Load Xtream content when active profile changes
   useEffect(() => {

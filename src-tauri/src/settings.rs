@@ -135,4 +135,60 @@ pub fn set_autoplay(state: State<DbState>, enabled: bool) -> Result<(), String> 
         ).map_err(|e| e.to_string())?;
     }
     Ok(())
-} 
+}
+
+// --- Video Player Settings: Volume ---
+#[tauri::command]
+pub fn get_volume(state: State<DbState>) -> Result<f64, String> {
+    let db = state.db.lock().unwrap();
+    let volume: f64 = db.query_row(
+        "SELECT volume FROM settings WHERE id = 1",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(1.0); // Default to 1.0 (100%) if not found
+    Ok(volume)
+}
+
+#[tauri::command]
+pub fn set_volume(state: State<DbState>, volume: f64) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    let rows_affected = db.execute(
+        "UPDATE settings SET volume = ?1 WHERE id = 1",
+        &[&volume],
+    ).map_err(|e| e.to_string())?;
+    if rows_affected == 0 {
+        db.execute(
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay, volume, is_muted) VALUES (1, 24, 1, 0, 1, 0, ?1, 0)",
+            rusqlite::params![volume],
+        ).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+// --- Video Player Settings: Is Muted ---
+#[tauri::command]
+pub fn get_is_muted(state: State<DbState>) -> Result<bool, String> {
+    let db = state.db.lock().unwrap();
+    let is_muted: bool = db.query_row(
+        "SELECT is_muted FROM settings WHERE id = 1",
+        [],
+        |row| row.get(0),
+    ).unwrap_or(false); // Default to false if not found
+    Ok(is_muted)
+}
+
+#[tauri::command]
+pub fn set_is_muted(state: State<DbState>, muted: bool) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    let rows_affected = db.execute(
+        "UPDATE settings SET is_muted = ?1 WHERE id = 1",
+        &[&muted],
+    ).map_err(|e| e.to_string())?;
+    if rows_affected == 0 {
+        db.execute(
+            "INSERT INTO settings (id, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay, volume, is_muted) VALUES (1, 24, 1, 0, 1, 0, 1.0, ?1)",
+            rusqlite::params![muted],
+        ).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}

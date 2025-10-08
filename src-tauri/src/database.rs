@@ -101,6 +101,20 @@ pub fn initialize_database() -> Result<Connection> {
     )
     .ok();
 
+    // Add the volume column to existing settings table if it doesn't exist
+    conn.execute(
+        "ALTER TABLE settings ADD COLUMN volume REAL NOT NULL DEFAULT 1.0",
+        [],
+    )
+    .ok();
+
+    // Add the is_muted column to existing settings table if it doesn't exist
+    conn.execute(
+        "ALTER TABLE settings ADD COLUMN is_muted BOOLEAN NOT NULL DEFAULT 0",
+        [],
+    )
+    .ok();
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS channel_lists (
             id INTEGER PRIMARY KEY,
@@ -227,7 +241,7 @@ pub fn initialize_database() -> Result<Connection> {
         conn.query_row("SELECT COUNT(*) FROM settings", [], |row| row.get(0))?;
     if settings_count == 0 {
         conn.execute(
-            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay) VALUES (1, 'mpv', 24, 1, 0, 1, 0)",
+            "INSERT INTO settings (id, player_command, cache_duration_hours, enable_preview, mute_on_start, show_controls, autoplay, volume, is_muted) VALUES (1, 'mpv', 24, 1, 0, 1, 0, 1.0, 0)",
             [],
         )?;
     }

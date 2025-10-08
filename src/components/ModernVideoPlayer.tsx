@@ -47,7 +47,16 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const { selectedChannel } = useChannelStore();
     const { activeProfile } = useProfileStore();
     const { currentAndNextEPG, epgData } = useXtreamContentStore();
-    const { muteOnStart, showControls, autoplay } = useSettingsStore();
+    const {
+      muteOnStart,
+      autoplay,
+      volume: savedVolume,
+      isMuted: savedIsMuted,
+      setVolume: setSavedVolume,
+      setIsMuted: setSavedIsMuted,
+      saveVolume,
+      saveIsMuted
+    } = useSettingsStore();
 
     // Video state
     const [codecWarning, setCodecWarning] = useState(false);
@@ -58,10 +67,10 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const [resumePosition, setResumePosition] = useState(0);
     const [showMetadata, setShowMetadata] = useState(false);
 
-    // Playback state
+    // Playback state - Use settings store values
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(muteOnStart);
-    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(savedIsMuted);
+    const [volume, setVolume] = useState(savedVolume);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1);
@@ -91,6 +100,12 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       data: selectedChannel,
       url: selectedChannel.url
     } : null);
+
+    // Sync local state with settings store
+    useEffect(() => {
+      setVolume(savedVolume);
+      setIsMuted(savedIsMuted);
+    }, [savedVolume, savedIsMuted]);
 
     // Generate stream URL
     useEffect(() => {
@@ -355,9 +370,18 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     const handlePause = useCallback(() => setIsPlaying(false), []);
     const handleVolumeChange = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
       const video = event.currentTarget;
-      setVolume(video.volume);
-      setIsMuted(video.muted);
-    }, []);
+      const newVolume = video.volume;
+      const newMuted = video.muted;
+
+      setVolume(newVolume);
+      setIsMuted(newMuted);
+
+      // Persist to settings
+      setSavedVolume(newVolume);
+      setSavedIsMuted(newMuted);
+      saveVolume();
+      saveIsMuted();
+    }, [setSavedVolume, setSavedIsMuted, saveVolume, saveIsMuted]);
 
     const handleWaiting = useCallback(() => setBuffering(true), []);
     const handleCanPlay = useCallback(() => setBuffering(false), []);
@@ -380,8 +404,14 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       const video = ref.current;
       if (!video) return;
 
-      video.muted = !video.muted;
-    }, [ref]);
+      const newMuted = !video.muted;
+      video.muted = newMuted;
+      setIsMuted(newMuted);
+
+      // Persist to settings
+      setSavedIsMuted(newMuted);
+      saveIsMuted();
+    }, [ref, setSavedIsMuted, saveIsMuted]);
 
     const handleVolumeSliderChange = useCallback((newVolume: number) => {
       if (!ref || typeof ref === 'function') return;
@@ -389,10 +419,19 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       if (!video) return;
 
       video.volume = newVolume;
+      setVolume(newVolume);
+
       if (newVolume > 0 && video.muted) {
         video.muted = false;
+        setIsMuted(false);
+        setSavedIsMuted(false);
+        saveIsMuted();
       }
-    }, [ref]);
+
+      // Persist to settings
+      setSavedVolume(newVolume);
+      saveVolume();
+    }, [ref, setSavedVolume, setSavedIsMuted, saveVolume, saveIsMuted]);
 
     const handleSeek = useCallback((time: number) => {
       if (!ref || typeof ref === 'function') return;
