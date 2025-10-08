@@ -47,7 +47,7 @@ export default function VirtualSeriesBrowser({ onSeriesSelect, onEpisodePlay }: 
       fetchSeriesCategories(activeProfile.id);
       fetchSeries(activeProfile.id);
     }
-  }, [activeProfile, fetchSeriesCategories, fetchSeries]);
+  }, [activeProfile]);
 
   useEffect(() => {
     if (seriesDetails && seriesDetails.seasons.length > 0) {

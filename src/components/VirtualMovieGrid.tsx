@@ -47,7 +47,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay }: Virtual
       fetchMovieCategories(activeProfile.id);
       fetchMovies(activeProfile.id);
     }
-  }, [activeProfile, fetchMovieCategories, fetchMovies]);
+  }, [activeProfile]);
 
   const handleCategoryFilter = async (categoryId: string | null) => {
     if (!activeProfile) return;
