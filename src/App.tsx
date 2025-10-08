@@ -81,8 +81,6 @@ function App() {
 
   // State for Xtream content playback
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
-  const [currentSeries, setCurrentSeries] = useState<XtreamShow | null>(null);
-  const [currentEpisode, setCurrentEpisode] = useState<XtreamEpisode | null>(null);
   const [nextEpisode, setNextEpisode] = useState<{ episode: XtreamEpisode; series: XtreamShow } | null>(null);
 
   // Fetch all settings on app load
@@ -345,9 +343,6 @@ function App() {
   const handleMoviePlay = handleMovieSelect;
 
   const handleEpisodePlay = (episode: XtreamEpisode, series: XtreamShow) => {
-    setCurrentEpisode(episode);
-    setCurrentSeries(series);
-
     // Find next episode
     const next = getNextEpisode(episode, series);
     setNextEpisode(next);
