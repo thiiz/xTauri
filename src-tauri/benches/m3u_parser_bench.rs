@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use tollo_lib::m3u_parser::Channel;
+use xtauri_lib::m3u_parser::Channel;
 use regex::Regex;
 
 // Simple M3U parsing function for benchmarking

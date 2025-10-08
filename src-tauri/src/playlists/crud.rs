@@ -177,7 +177,7 @@ pub async fn start_channel_list_selection_async(
                         true // Cache is expired, need refresh
                     } else {
                         // Cache is not expired, but validate the cached file
-                        let data_dir = dirs::data_dir().unwrap().join("tollo");
+                        let data_dir = dirs::data_dir().unwrap().join("xtauri");
                         let channel_lists_dir = data_dir.join("channel_lists");
                         let cached_file_path = channel_lists_dir.join(&cached_file);
                     

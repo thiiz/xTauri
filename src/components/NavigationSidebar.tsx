@@ -61,7 +61,7 @@ export default function NavigationSidebar() {
         <div className="nav-header">
           <div className="app-brand">
             <div className="app-brand-icon">📺</div>
-            <h1 className="app-brand-title">Tollo</h1>
+            <h1 className="app-brand-title">xTauri</h1>
           </div>
         </div>
 

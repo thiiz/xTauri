@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use tollo_lib::m3u_parser::Channel;
+use xtauri_lib::m3u_parser::Channel;
 use std::sync::Arc;
 use std::collections::HashMap;
 use sha2::{Digest, Sha256};

@@ -615,7 +615,7 @@ impl ImageCache {
         // Create HTTP client with reasonable timeouts
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .user_agent("tollo/1.0")
+            .user_agent("xtauri/1.0")
             .build()?;
 
         Ok(ImageCache {

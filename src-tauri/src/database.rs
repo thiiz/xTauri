@@ -1,15 +1,15 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::m3u_parser::Channel;
 use rusqlite::{Connection, Result as RusqliteResult};
 use std::fs;
 
 pub fn initialize_database() -> Result<Connection> {
     let data_dir = dirs::data_dir()
-        .ok_or_else(|| TolloError::DataDirectoryAccess)?
-        .join("tollo");
+        .ok_or_else(|| XTauriError::DataDirectoryAccess)?
+        .join("xtauri");
 
     fs::create_dir_all(&data_dir)
-        .map_err(|_e| TolloError::directory_creation(data_dir.display().to_string()))?;
+        .map_err(|_e| XTauriError::directory_creation(data_dir.display().to_string()))?;
 
     let db_path = data_dir.join("database.sqlite");
     let conn = Connection::open(&db_path)?;

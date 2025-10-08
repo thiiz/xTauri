@@ -400,7 +400,7 @@ function App() {
         <div className="main-content">
           <div className="settings-full-width">
             <div className="section-header">
-              <h2 className="section-title">Welcome to Tollo</h2>
+              <h2 className="section-title">Welcome to xTauri</h2>
               <p className="section-subtitle">Add your Xtream Codes profile to get started</p>
             </div>
             <div className="settings-container">

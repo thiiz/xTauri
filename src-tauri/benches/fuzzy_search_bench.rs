@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use tollo_lib::fuzzy_search::*;
-use tollo_lib::m3u_parser::Channel;
+use xtauri_lib::fuzzy_search::*;
+use xtauri_lib::m3u_parser::Channel;
 
 fn create_test_channels(count: usize) -> Vec<Channel> {
     (0..count).map(|i| Channel {

@@ -1,24 +1,24 @@
 [package]
-name = "tollo"
+name = "xtauri"
 version = "0.1.8"
-description = "Tollo - A modern IPTV player"
-authors = ["sambergo"]
+description = "xTauri - A modern IPTV player"
+authors = ["thiiz"]
 license = "MIT"
-repository = "https://github.com/sambergo/tollo"
+repository = "https://github.com/thiiz/xtauri"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 # Define binary target (required for Windows)
 [[bin]]
-name = "tollo"
+name = "xtauri"
 path = "src/main.rs"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "tollo_lib"
+name = "xtauri_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

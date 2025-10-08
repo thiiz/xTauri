@@ -1,13 +1,13 @@
-use crate::error::{Result as TolloResult, TolloError};
+use crate::error::{Result as XTauriResult, XTauriError};
 use std::fs;
 use rusqlite::Connection;
 use dirs;
 
 // Add cleanup function near the top with other utility functions
-pub fn cleanup_orphaned_channel_files(db_connection: &Connection) -> TolloResult<()> {
+pub fn cleanup_orphaned_channel_files(db_connection: &Connection) -> XTauriResult<()> {
     let data_dir = dirs::data_dir()
-        .ok_or_else(|| TolloError::DataDirectoryAccess)?
-        .join("tollo");
+        .ok_or_else(|| XTauriError::DataDirectoryAccess)?
+        .join("xtauri");
     let channel_lists_dir = data_dir.join("channel_lists");
     
     // Create channel_lists directory if it doesn't exist

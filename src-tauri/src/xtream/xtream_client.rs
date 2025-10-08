@@ -1,4 +1,4 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::xtream::types::{ProfileCredentials, StreamURLRequest, ContentType};
 use crate::xtream::content_cache::ContentCache;
 use reqwest::Client;
@@ -27,7 +27,7 @@ impl XtreamClient {
         let client = Client::builder()
             .timeout(timeout)
             .build()
-            .map_err(|e| TolloError::internal(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| XTauriError::internal(format!("Failed to create HTTP client: {}", e)))?;
         
         // Validate and normalize the base URL
         let base_url = Self::normalize_base_url(&credentials.url)?;
@@ -63,14 +63,14 @@ impl XtreamClient {
                     // Don't retry for authentication failures or invalid credentials
                     if let Some(ref err) = last_error {
                         match err {
-                            TolloError::XtreamInvalidCredentials => break,
-                            TolloError::XtreamAuthenticationFailed { .. } => {
+                            XTauriError::XtreamInvalidCredentials => break,
+                            XTauriError::XtreamAuthenticationFailed { .. } => {
                                 // Only retry network-related auth failures
                                 if !err.to_string().contains("Network error") {
                                     break;
                                 }
                             }
-                            TolloError::XtreamApiError { status, .. } => {
+                            XTauriError::XtreamApiError { status, .. } => {
                                 // Don't retry client errors (4xx), but retry server errors (5xx)
                                 if *status < 500 {
                                     break;
@@ -89,7 +89,7 @@ impl XtreamClient {
             }
         }
         
-        Err(last_error.unwrap_or_else(|| TolloError::xtream_auth_failed("Authentication failed after retries".to_string())))
+        Err(last_error.unwrap_or_else(|| XTauriError::xtream_auth_failed("Authentication failed after retries".to_string())))
     }
     
     /// Single authentication attempt
@@ -100,11 +100,11 @@ impl XtreamClient {
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    TolloError::timeout("authentication request")
+                    XTauriError::timeout("authentication request")
                 } else if e.is_connect() {
-                    TolloError::xtream_auth_failed(format!("Connection failed: {}", e))
+                    XTauriError::xtream_auth_failed(format!("Connection failed: {}", e))
                 } else {
-                    TolloError::xtream_auth_failed(format!("Network error: {}", e))
+                    XTauriError::xtream_auth_failed(format!("Network error: {}", e))
                 }
             })?;
         
@@ -119,13 +119,13 @@ impl XtreamClient {
                 _ => format!("HTTP error: {}", status),
             };
             
-            return Err(TolloError::xtream_api_error(status.as_u16(), error_message));
+            return Err(XTauriError::xtream_api_error(status.as_u16(), error_message));
         }
         
         let profile_data: Value = response
             .json()
             .await
-            .map_err(|e| TolloError::xtream_auth_failed(format!("Invalid response format: {}", e)))?;
+            .map_err(|e| XTauriError::xtream_auth_failed(format!("Invalid response format: {}", e)))?;
         
         // Check if authentication was successful
         self.validate_auth_response(&profile_data)?;
@@ -138,7 +138,7 @@ impl XtreamClient {
         // Check for error messages in response
         if let Some(error) = profile_data.get("error") {
             if let Some(error_str) = error.as_str() {
-                return Err(TolloError::xtream_auth_failed(format!("Server error: {}", error_str)));
+                return Err(XTauriError::xtream_auth_failed(format!("Server error: {}", error_str)));
             }
         }
         
@@ -152,10 +152,10 @@ impl XtreamClient {
                         return Ok(());
                     }
                     Some(0) => {
-                        return Err(TolloError::XtreamInvalidCredentials);
+                        return Err(XTauriError::XtreamInvalidCredentials);
                     }
                     _ => {
-                        return Err(TolloError::xtream_auth_failed("Invalid auth status in response".to_string()));
+                        return Err(XTauriError::xtream_auth_failed("Invalid auth status in response".to_string()));
                     }
                 }
             }
@@ -165,10 +165,10 @@ impl XtreamClient {
                 if let Some(status_str) = status.as_str() {
                     match status_str {
                         "Active" => {}, // Good
-                        "Banned" => return Err(TolloError::xtream_auth_failed("Account is banned".to_string())),
-                        "Disabled" => return Err(TolloError::xtream_auth_failed("Account is disabled".to_string())),
-                        "Expired" => return Err(TolloError::xtream_auth_failed("Account has expired".to_string())),
-                        _ => return Err(TolloError::xtream_auth_failed(format!("Account status: {}", status_str))),
+                        "Banned" => return Err(XTauriError::xtream_auth_failed("Account is banned".to_string())),
+                        "Disabled" => return Err(XTauriError::xtream_auth_failed("Account is disabled".to_string())),
+                        "Expired" => return Err(XTauriError::xtream_auth_failed("Account has expired".to_string())),
+                        _ => return Err(XTauriError::xtream_auth_failed(format!("Account status: {}", status_str))),
                     }
                 }
             }
@@ -180,14 +180,14 @@ impl XtreamClient {
                         let exp_datetime = chrono::DateTime::from_timestamp(exp_timestamp, 0);
                         if let Some(exp_dt) = exp_datetime {
                             if exp_dt < chrono::Utc::now() {
-                                return Err(TolloError::xtream_auth_failed("Account has expired".to_string()));
+                                return Err(XTauriError::xtream_auth_failed("Account has expired".to_string()));
                             }
                         }
                     }
                 }
             }
         } else {
-            return Err(TolloError::xtream_auth_failed("Missing user_info in response".to_string()));
+            return Err(XTauriError::xtream_auth_failed("Missing user_info in response".to_string()));
         }
         
         Ok(())
@@ -1953,10 +1953,10 @@ impl XtreamClient {
             .get(url)
             .send()
             .await
-            .map_err(|e| TolloError::Network(e))?;
+            .map_err(|e| XTauriError::Network(e))?;
         
         if !response.status().is_success() {
-            return Err(TolloError::xtream_api_error(
+            return Err(XTauriError::xtream_api_error(
                 response.status().as_u16(),
                 format!("API request failed: {}", response.status()),
             ));
@@ -1965,7 +1965,7 @@ impl XtreamClient {
         let data: Value = response
             .json()
             .await
-            .map_err(|e| TolloError::xtream_api_error(500, format!("Invalid JSON response: {}", e)))?;
+            .map_err(|e| XTauriError::xtream_api_error(500, format!("Invalid JSON response: {}", e)))?;
         
         Ok(data)
     }
@@ -1973,19 +1973,19 @@ impl XtreamClient {
     /// Normalize and validate base URL
     fn normalize_base_url(url: &str) -> Result<String> {
         let parsed_url = Url::parse(url)
-            .map_err(|e| TolloError::internal(format!("Invalid URL format: {}", e)))?;
+            .map_err(|e| XTauriError::internal(format!("Invalid URL format: {}", e)))?;
         
         // Validate scheme
         match parsed_url.scheme() {
             "http" | "https" => {}
-            _ => return Err(TolloError::internal("URL must use HTTP or HTTPS scheme".to_string())),
+            _ => return Err(XTauriError::internal("URL must use HTTP or HTTPS scheme".to_string())),
         }
         
         // Build base URL without path
         let base_url = format!(
             "{}://{}{}",
             parsed_url.scheme(),
-            parsed_url.host_str().ok_or_else(|| TolloError::internal("Invalid host in URL".to_string()))?,
+            parsed_url.host_str().ok_or_else(|| XTauriError::internal("Invalid host in URL".to_string()))?,
             if let Some(port) = parsed_url.port() {
                 format!(":{}", port)
             } else {

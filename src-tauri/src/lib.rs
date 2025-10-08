@@ -20,7 +20,7 @@ pub mod xtream;
 #[cfg(test)]
 mod integration_tests;
 
-use error::{Result, TolloError};
+use error::{Result, XTauriError};
 use image_cache::ImageCache;
 use playlists::FetchState;
 use state::{ChannelCacheState, DbState, ImageCacheState};
@@ -42,7 +42,7 @@ use xtream::commands::*;
 
 fn initialize_application() -> Result<(rusqlite::Connection, Vec<m3u_parser::Channel>)> {
     let mut db_connection = database::initialize_database()
-        .map_err(|e| TolloError::database_init(format!("Database initialization failed: {}", e)))?;
+        .map_err(|e| XTauriError::database_init(format!("Database initialization failed: {}", e)))?;
 
     // Run cleanup on startup to remove orphaned channel list files
     if let Err(e) = utils::cleanup_orphaned_channel_files(&db_connection) {
@@ -51,21 +51,21 @@ fn initialize_application() -> Result<(rusqlite::Connection, Vec<m3u_parser::Cha
 
     let channels = m3u_parser::get_channels(&mut db_connection, None);
     database::populate_channels(&mut db_connection, &channels)
-        .map_err(|e| TolloError::database_init(format!("Failed to populate channels: {}", e)))?;
+        .map_err(|e| XTauriError::database_init(format!("Failed to populate channels: {}", e)))?;
 
     Ok((db_connection, channels))
 }
 
 fn setup_image_cache(app: &tauri::App) -> Result<ImageCache> {
     ImageCache::new(app.handle())
-        .map_err(|e| TolloError::internal(format!("Failed to initialize image cache: {}", e)))
+        .map_err(|e| XTauriError::internal(format!("Failed to initialize image cache: {}", e)))
 }
 
 fn setup_xtream_state(db_connection: Arc<Mutex<rusqlite::Connection>>) -> Result<XtreamState> {
     // Create credential manager
     let credential_manager = Arc::new(
         CredentialManager::new()
-            .map_err(|e| TolloError::internal(format!("Failed to initialize credential manager: {}", e)))?
+            .map_err(|e| XTauriError::internal(format!("Failed to initialize credential manager: {}", e)))?
     );
     
     // Create content cache using the same database connection
@@ -97,7 +97,7 @@ pub fn run() {
             db: Mutex::new(
                 // Create a new connection for the DbState since we need to share the Arc
                 database::initialize_database()
-                    .map_err(|e| TolloError::database_init(format!("Failed to create second DB connection: {}", e)))
+                    .map_err(|e| XTauriError::database_init(format!("Failed to create second DB connection: {}", e)))
                     .unwrap()
             ),
         })

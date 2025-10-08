@@ -1,4 +1,4 @@
-use crate::error::TolloError;
+use crate::error::XTauriError;
 use crate::xtream::{
     ProfileManager, XtreamClient, ContentCache, ProfileCredentials, 
     CreateProfileRequest, UpdateProfileRequest, StreamURLRequest,
@@ -116,11 +116,11 @@ pub async fn validate_xtream_credentials(
         }),
         Err(e) => {
             let error_type = match &e {
-                TolloError::XtreamInvalidCredentials => AuthenticationErrorType::InvalidCredentials,
-                TolloError::XtreamAuthenticationFailed { .. } => AuthenticationErrorType::AuthenticationFailed,
-                TolloError::Network(_) => AuthenticationErrorType::NetworkError,
-                TolloError::Timeout { .. } => AuthenticationErrorType::TimeoutError,
-                TolloError::XtreamApiError { status, .. } => {
+                XTauriError::XtreamInvalidCredentials => AuthenticationErrorType::InvalidCredentials,
+                XTauriError::XtreamAuthenticationFailed { .. } => AuthenticationErrorType::AuthenticationFailed,
+                XTauriError::Network(_) => AuthenticationErrorType::NetworkError,
+                XTauriError::Timeout { .. } => AuthenticationErrorType::TimeoutError,
+                XTauriError::XtreamApiError { status, .. } => {
                     if *status >= 500 {
                         AuthenticationErrorType::ServerError
                     } else {

@@ -1,4 +1,4 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::xtream::types::{XtreamProfile, CreateProfileRequest, UpdateProfileRequest};
 use rusqlite::{Connection, params};
 use chrono::{DateTime, Utc};
@@ -32,9 +32,9 @@ impl XtreamDatabase {
             ],
         ).map_err(|e| {
             if e.to_string().contains("UNIQUE constraint failed") {
-                TolloError::profile_validation(format!("Profile name '{}' already exists", request.name))
+                XTauriError::profile_validation(format!("Profile name '{}' already exists", request.name))
             } else {
-                TolloError::Database(e)
+                XTauriError::Database(e)
             }
         })?;
         
@@ -93,7 +93,7 @@ impl XtreamDatabase {
         let rows_affected = conn.execute(&query, rusqlite::params_from_iter(params.iter()))?;
         
         if rows_affected == 0 {
-            return Err(TolloError::xtream_profile_not_found(profile_id));
+            return Err(XTauriError::xtream_profile_not_found(profile_id));
         }
         
         Ok(())
@@ -107,7 +107,7 @@ impl XtreamDatabase {
         )?;
         
         if rows_affected == 0 {
-            return Err(TolloError::xtream_profile_not_found(profile_id));
+            return Err(XTauriError::xtream_profile_not_found(profile_id));
         }
         
         Ok(())
@@ -227,7 +227,7 @@ impl XtreamDatabase {
         
         if rows_affected == 0 {
             tx.rollback()?;
-            return Err(TolloError::xtream_profile_not_found(profile_id));
+            return Err(XTauriError::xtream_profile_not_found(profile_id));
         }
         
         tx.commit()?;
@@ -310,7 +310,7 @@ impl XtreamDatabase {
         )?;
         
         if rows_affected == 0 {
-            return Err(TolloError::xtream_profile_not_found(profile_id));
+            return Err(XTauriError::xtream_profile_not_found(profile_id));
         }
         
         Ok(())

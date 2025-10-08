@@ -1,4 +1,4 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::xtream::types::ProfileCredentials;
 use aes::Aes256;
 use aes::cipher::{
@@ -28,7 +28,7 @@ pub struct CredentialManager {
 impl CredentialManager {
     /// Create a new credential manager with platform-specific secure key storage
     pub fn new() -> Result<Self> {
-        let app_name = "tollo-iptv".to_string();
+        let app_name = "xtauri-iptv".to_string();
         let encryption_key = Self::get_or_create_master_key(&app_name)?;
         
         Ok(Self {
@@ -44,24 +44,24 @@ impl CredentialManager {
         Self {
             encryption_key: key,
             credential_cache: Mutex::new(HashMap::new()),
-            app_name: "tollo-iptv-test".to_string(),
+            app_name: "xtauri-iptv-test".to_string(),
         }
     }
     
     /// Get or create the master encryption key using platform-specific secure storage
     fn get_or_create_master_key(app_name: &str) -> Result<[u8; 32]> {
         let entry = Entry::new(app_name, "master_key")
-            .map_err(|e| TolloError::credential_encryption(format!("Failed to access keyring: {}", e)))?;
+            .map_err(|e| XTauriError::credential_encryption(format!("Failed to access keyring: {}", e)))?;
         
         // Try to retrieve existing key
         match entry.get_password() {
             Ok(key_b64) => {
                 // Decode existing key
                 let key_bytes = general_purpose::STANDARD.decode(&key_b64)
-                    .map_err(|e| TolloError::credential_decryption(format!("Failed to decode master key: {}", e)))?;
+                    .map_err(|e| XTauriError::credential_decryption(format!("Failed to decode master key: {}", e)))?;
                 
                 if key_bytes.len() != 32 {
-                    return Err(TolloError::credential_decryption("Invalid master key length".to_string()));
+                    return Err(XTauriError::credential_decryption("Invalid master key length".to_string()));
                 }
                 
                 let mut key = [0u8; 32];
@@ -75,7 +75,7 @@ impl CredentialManager {
                 
                 let key_b64 = general_purpose::STANDARD.encode(&key);
                 entry.set_password(&key_b64)
-                    .map_err(|e| TolloError::credential_encryption(format!("Failed to store master key: {}", e)))?;
+                    .map_err(|e| XTauriError::credential_encryption(format!("Failed to store master key: {}", e)))?;
                 
                 Ok(key)
             }
@@ -101,7 +101,7 @@ impl CredentialManager {
     /// Generate HMAC for integrity verification
     fn generate_hmac(&self, data: &[u8], key: &[u8; 32]) -> Result<[u8; 32]> {
         let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key)
-            .map_err(|e| TolloError::credential_encryption(format!("HMAC key error: {}", e)))?;
+            .map_err(|e| XTauriError::credential_encryption(format!("HMAC key error: {}", e)))?;
         
         mac.update(data);
         let result = mac.finalize();
@@ -120,7 +120,7 @@ impl CredentialManager {
     /// Encrypt profile credentials with enhanced security
     pub fn encrypt_credentials_for_profile(&self, profile_id: &str, credentials: &ProfileCredentials) -> Result<Vec<u8>> {
         let serialized = serde_json::to_vec(credentials)
-            .map_err(|e| TolloError::credential_encryption(format!("Serialization failed: {}", e)))?;
+            .map_err(|e| XTauriError::credential_encryption(format!("Serialization failed: {}", e)))?;
         
         // Generate random salt and IV
         let mut salt = [0u8; 16];
@@ -184,7 +184,7 @@ impl CredentialManager {
     pub fn decrypt_credentials_for_profile(&self, profile_id: &str, encrypted_data: &[u8]) -> Result<ProfileCredentials> {
         // Minimum size: salt (16) + iv (16) + hmac (32) + at least one block (16)
         if encrypted_data.len() < 80 {
-            return Err(TolloError::credential_decryption("Invalid encrypted data length".to_string()));
+            return Err(XTauriError::credential_decryption("Invalid encrypted data length".to_string()));
         }
         
         // Extract components
@@ -194,7 +194,7 @@ impl CredentialManager {
         let ciphertext = &encrypted_data[64..];
         
         if ciphertext.len() % 16 != 0 {
-            return Err(TolloError::credential_decryption("Invalid ciphertext length".to_string()));
+            return Err(XTauriError::credential_decryption("Invalid ciphertext length".to_string()));
         }
         
         // Derive profile-specific key
@@ -205,7 +205,7 @@ impl CredentialManager {
         expected_hmac.copy_from_slice(stored_hmac);
         
         if !self.verify_hmac(ciphertext, &expected_hmac, &profile_key)? {
-            return Err(TolloError::credential_decryption("HMAC verification failed - data may be corrupted".to_string()));
+            return Err(XTauriError::credential_decryption("HMAC verification failed - data may be corrupted".to_string()));
         }
         
         // Decrypt the data using CBC mode
@@ -246,7 +246,7 @@ impl CredentialManager {
         
         // Deserialize the credentials
         let credentials: ProfileCredentials = serde_json::from_slice(&decrypted_data)
-            .map_err(|e| TolloError::credential_decryption(format!("Deserialization failed: {}", e)))?;
+            .map_err(|e| XTauriError::credential_decryption(format!("Deserialization failed: {}", e)))?;
         
         // Clear decrypted data from memory
         decrypted_data.fill(0);
@@ -270,7 +270,7 @@ impl CredentialManager {
     /// Legacy decrypt method for backward compatibility
     fn decrypt_credentials_legacy(&self, encrypted_data: &[u8]) -> Result<ProfileCredentials> {
         if encrypted_data.len() < 16 {
-            return Err(TolloError::credential_decryption("Invalid encrypted data length".to_string()));
+            return Err(XTauriError::credential_decryption("Invalid encrypted data length".to_string()));
         }
         
         // Extract IV and encrypted data
@@ -278,7 +278,7 @@ impl CredentialManager {
         let ciphertext = &encrypted_data[16..];
         
         if ciphertext.len() % 16 != 0 {
-            return Err(TolloError::credential_decryption("Invalid ciphertext length".to_string()));
+            return Err(XTauriError::credential_decryption("Invalid ciphertext length".to_string()));
         }
         
         // Decrypt the data
@@ -306,7 +306,7 @@ impl CredentialManager {
         
         // Deserialize the credentials
         let credentials: ProfileCredentials = serde_json::from_slice(&decrypted_data)
-            .map_err(|e| TolloError::credential_decryption(format!("Deserialization failed: {}", e)))?;
+            .map_err(|e| XTauriError::credential_decryption(format!("Deserialization failed: {}", e)))?;
         
         Ok(credentials)
     }
@@ -314,7 +314,7 @@ impl CredentialManager {
     /// Store credentials in memory cache
     pub fn cache_credentials(&self, profile_id: &str, credentials: &ProfileCredentials) -> Result<()> {
         let mut cache = self.credential_cache.lock()
-            .map_err(|_| TolloError::lock_acquisition("credential cache"))?;
+            .map_err(|_| XTauriError::lock_acquisition("credential cache"))?;
         
         cache.insert(profile_id.to_string(), credentials.clone());
         Ok(())
@@ -323,7 +323,7 @@ impl CredentialManager {
     /// Retrieve credentials from memory cache
     pub fn get_cached_credentials(&self, profile_id: &str) -> Result<Option<ProfileCredentials>> {
         let cache = self.credential_cache.lock()
-            .map_err(|_| TolloError::lock_acquisition("credential cache"))?;
+            .map_err(|_| XTauriError::lock_acquisition("credential cache"))?;
         
         Ok(cache.get(profile_id).cloned())
     }
@@ -331,7 +331,7 @@ impl CredentialManager {
     /// Clear credentials from memory cache
     pub fn clear_cached_credentials(&self, profile_id: &str) -> Result<()> {
         let mut cache = self.credential_cache.lock()
-            .map_err(|_| TolloError::lock_acquisition("credential cache"))?;
+            .map_err(|_| XTauriError::lock_acquisition("credential cache"))?;
         
         cache.remove(profile_id);
         Ok(())
@@ -340,7 +340,7 @@ impl CredentialManager {
     /// Clear all cached credentials
     pub fn clear_all_cached_credentials(&self) -> Result<()> {
         let mut cache = self.credential_cache.lock()
-            .map_err(|_| TolloError::lock_acquisition("credential cache"))?;
+            .map_err(|_| XTauriError::lock_acquisition("credential cache"))?;
         
         cache.clear();
         Ok(())
@@ -356,10 +356,10 @@ impl CredentialManager {
         
         // Store in platform-specific keyring
         let entry = Entry::new(&self.app_name, &format!("profile_{}", profile_id))
-            .map_err(|e| TolloError::credential_encryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
+            .map_err(|e| XTauriError::credential_encryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
         
         entry.set_password(&encoded_data)
-            .map_err(|e| TolloError::credential_encryption(format!("Failed to store credentials for profile {}: {}", profile_id, e)))?;
+            .map_err(|e| XTauriError::credential_encryption(format!("Failed to store credentials for profile {}: {}", profile_id, e)))?;
         
         // Also cache in memory for quick access
         self.cache_credentials(profile_id, credentials)?;
@@ -376,7 +376,7 @@ impl CredentialManager {
         
         // Retrieve from platform-specific keyring
         let entry = Entry::new(&self.app_name, &format!("profile_{}", profile_id))
-            .map_err(|e| TolloError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
+            .map_err(|e| XTauriError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
         
         match entry.get_password() {
             Ok(encoded_data) => {
@@ -396,7 +396,7 @@ impl CredentialManager {
                 Ok(None)
             }
             Err(e) => {
-                Err(TolloError::credential_decryption(format!("Failed to retrieve credentials for profile {}: {}", profile_id, e)))
+                Err(XTauriError::credential_decryption(format!("Failed to retrieve credentials for profile {}: {}", profile_id, e)))
             }
         }
     }
@@ -405,7 +405,7 @@ impl CredentialManager {
     pub fn delete_credentials(&self, profile_id: &str) -> Result<()> {
         // Remove from platform-specific keyring
         let entry = Entry::new(&self.app_name, &format!("profile_{}", profile_id))
-            .map_err(|e| TolloError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
+            .map_err(|e| XTauriError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
         
         match entry.delete_password() {
             Ok(()) => {},
@@ -413,7 +413,7 @@ impl CredentialManager {
                 // Already deleted or never existed
             }
             Err(e) => {
-                return Err(TolloError::credential_decryption(format!("Failed to delete credentials for profile {}: {}", profile_id, e)));
+                return Err(XTauriError::credential_decryption(format!("Failed to delete credentials for profile {}: {}", profile_id, e)));
             }
         }
         
@@ -432,12 +432,12 @@ impl CredentialManager {
         
         // Check platform-specific keyring
         let entry = Entry::new(&self.app_name, &format!("profile_{}", profile_id))
-            .map_err(|e| TolloError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
+            .map_err(|e| XTauriError::credential_decryption(format!("Failed to access keyring for profile {}: {}", profile_id, e)))?;
         
         match entry.get_password() {
             Ok(_) => Ok(true),
             Err(keyring::Error::NoEntry) => Ok(false),
-            Err(e) => Err(TolloError::credential_decryption(format!("Failed to check credentials for profile {}: {}", profile_id, e))),
+            Err(e) => Err(XTauriError::credential_decryption(format!("Failed to check credentials for profile {}: {}", profile_id, e))),
         }
     }
     
@@ -470,7 +470,7 @@ impl CredentialManager {
                 chrono::Utc::now().to_rfc3339(),
                 profile_id
             ],
-        ).map_err(|e| TolloError::Database(e))?;
+        ).map_err(|e| XTauriError::Database(e))?;
         
         // Also cache in memory for quick access
         self.cache_credentials(profile_id, credentials)?;
@@ -492,15 +492,15 @@ impl CredentialManager {
         // Retrieve from database
         let mut stmt = conn.prepare(
             "SELECT encrypted_credentials FROM xtream_profiles WHERE id = ?1"
-        ).map_err(|e| TolloError::Database(e))?;
+        ).map_err(|e| XTauriError::Database(e))?;
         
         let mut credential_iter = stmt.query_map(rusqlite::params![profile_id], |row| {
             Ok(row.get::<_, Vec<u8>>(0)?)
-        }).map_err(|e| TolloError::Database(e))?;
+        }).map_err(|e| XTauriError::Database(e))?;
         
         match credential_iter.next() {
             Some(encrypted_data_result) => {
-                let encrypted_data = encrypted_data_result.map_err(|e| TolloError::Database(e))?;
+                let encrypted_data = encrypted_data_result.map_err(|e| XTauriError::Database(e))?;
                 
                 // Decrypt credentials
                 let credentials = self.decrypt_credentials_for_profile(profile_id, &encrypted_data)?;
@@ -562,7 +562,7 @@ impl CredentialManager {
     /// Decode base64 data from database storage
     pub fn decode_from_storage(&self, encoded_data: &str) -> Result<Vec<u8>> {
         general_purpose::STANDARD.decode(encoded_data)
-            .map_err(|e| TolloError::credential_decryption(format!("Base64 decode failed: {}", e)))
+            .map_err(|e| XTauriError::credential_decryption(format!("Base64 decode failed: {}", e)))
     }
     
     /// Get a content cache instance for Xtream client operations

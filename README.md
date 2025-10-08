@@ -1,10 +1,10 @@
-# Tollo - IPTV Player
+# xTauri - IPTV Player
 
 ⚠️ **Development Phase** - This application is currently under active development and may be unstable.
 
 IPTV player with fuzzy search, vim-like navigation, external player integration, favorites and history. Built with Tauri (Rust + React/TypeScript).
 
-![Tollo Screenshot](public/screenshot.png)
+![xTauri Screenshot](public/screenshot.png)
 
 ## Features
 
@@ -24,7 +24,7 @@ IPTV player with fuzzy search, vim-like navigation, external player integration,
 
 ## Installation
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/sambergo/tollo/releases).
+Download the latest release for your platform from [GitHub Releases](https://github.com/thiiz/xtauri/releases).
 
 ### Available Downloads
 - **Windows**: `.msi` installer

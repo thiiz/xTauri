@@ -1,4 +1,4 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::xtream::types::{CachedContent, CacheKey};
 use dashmap::DashMap;
 use rusqlite::Connection;
@@ -183,7 +183,7 @@ impl ContentCache {
         
         // Check database cache
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db.prepare(
             "SELECT data, expires_at FROM xtream_content_cache WHERE cache_key = ? AND expires_at > datetime('now')"
@@ -214,7 +214,7 @@ impl ContentCache {
                 self.record_cache_miss(&content_type);
                 Ok(None)
             }
-            Err(e) => Err(TolloError::Database(e)),
+            Err(e) => Err(XTauriError::Database(e)),
         }
     }
     
@@ -233,7 +233,7 @@ impl ContentCache {
         self.enforce_cache_policy(&content_type_str)?;
         
         let expires_at = Utc::now() + chrono::Duration::from_std(ttl)
-            .map_err(|e| TolloError::content_cache(format!("Invalid TTL: {}", e)))?;
+            .map_err(|e| XTauriError::content_cache(format!("Invalid TTL: {}", e)))?;
         
         let cached_content = CachedContent {
             data: data.clone(),
@@ -246,7 +246,7 @@ impl ContentCache {
         
         // Store in database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         let expires_at_str = expires_at.to_rfc3339();
         
         // Extract profile_id from cache key for foreign key constraint
@@ -267,7 +267,7 @@ impl ContentCache {
         
         // Remove from database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         let pattern_owned = format!("%{}%", pattern);
         
         db.execute(
@@ -286,7 +286,7 @@ impl ContentCache {
         
         // Remove from database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute(
             "DELETE FROM xtream_content_cache WHERE profile_id = ?1",
@@ -306,7 +306,7 @@ impl ContentCache {
         
         // Remove expired entries from database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute(
             "DELETE FROM xtream_content_cache WHERE expires_at <= ?",
@@ -321,7 +321,7 @@ impl ContentCache {
         let memory_entries = self.memory_cache.len();
         
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let entries: i64 = db.query_row(
             "SELECT COUNT(*) FROM xtream_content_cache",
@@ -400,7 +400,7 @@ impl ContentCache {
         // Add to prefetch queue
         {
             let mut queue = self.prefetch_queue.lock()
-                .map_err(|_| TolloError::lock_acquisition("prefetch queue"))?;
+                .map_err(|_| XTauriError::lock_acquisition("prefetch queue"))?;
             queue.extend(warm_items);
             
             // Sort by priority and scheduled time
@@ -416,7 +416,7 @@ impl ContentCache {
     /// Add item to prefetch queue
     pub fn schedule_prefetch(&self, item: PrefetchItem) -> Result<()> {
         let mut queue = self.prefetch_queue.lock()
-            .map_err(|_| TolloError::lock_acquisition("prefetch queue"))?;
+            .map_err(|_| XTauriError::lock_acquisition("prefetch queue"))?;
         
         // Check if item already exists in queue
         if !queue.iter().any(|existing| {
@@ -439,7 +439,7 @@ impl ContentCache {
     /// Get next item from prefetch queue
     pub fn get_next_prefetch_item(&self) -> Result<Option<PrefetchItem>> {
         let mut queue = self.prefetch_queue.lock()
-            .map_err(|_| TolloError::lock_acquisition("prefetch queue"))?;
+            .map_err(|_| XTauriError::lock_acquisition("prefetch queue"))?;
         
         // Remove items that are scheduled for the future
         let now = Utc::now();
@@ -463,14 +463,14 @@ impl ContentCache {
     /// Get detailed cache statistics
     pub fn get_detailed_stats(&self) -> Result<CacheStatistics> {
         let stats = self.cache_stats.lock()
-            .map_err(|_| TolloError::lock_acquisition("cache statistics"))?;
+            .map_err(|_| XTauriError::lock_acquisition("cache statistics"))?;
         Ok(stats.clone())
     }
     
     /// Reset cache statistics
     pub fn reset_stats(&self) -> Result<()> {
         let mut stats = self.cache_stats.lock()
-            .map_err(|_| TolloError::lock_acquisition("cache statistics"))?;
+            .map_err(|_| XTauriError::lock_acquisition("cache statistics"))?;
         *stats = CacheStatistics::default();
         Ok(())
     }
@@ -478,7 +478,7 @@ impl ContentCache {
     /// Get cache hit ratio
     pub fn get_hit_ratio(&self) -> Result<f64> {
         let stats = self.cache_stats.lock()
-            .map_err(|_| TolloError::lock_acquisition("cache statistics"))?;
+            .map_err(|_| XTauriError::lock_acquisition("cache statistics"))?;
         
         let total = stats.hits + stats.misses;
         if total == 0 {
@@ -491,7 +491,7 @@ impl ContentCache {
     /// Get prefetch hit ratio
     pub fn get_prefetch_hit_ratio(&self) -> Result<f64> {
         let stats = self.cache_stats.lock()
-            .map_err(|_| TolloError::lock_acquisition("cache statistics"))?;
+            .map_err(|_| XTauriError::lock_acquisition("cache statistics"))?;
         
         let total = stats.prefetch_hits + stats.prefetch_misses;
         if total == 0 {
@@ -516,7 +516,7 @@ impl ContentCache {
         // Update cleanup timestamp
         {
             let mut stats = self.cache_stats.lock()
-                .map_err(|_| TolloError::lock_acquisition("cache statistics"))?;
+                .map_err(|_| XTauriError::lock_acquisition("cache statistics"))?;
             stats.last_cleanup = Some(Utc::now());
         }
         
@@ -529,7 +529,7 @@ impl ContentCache {
         T: Serialize,
     {
         serde_json::to_vec(value)
-            .map_err(|e| TolloError::content_cache(format!("Serialization failed: {}", e)))
+            .map_err(|e| XTauriError::content_cache(format!("Serialization failed: {}", e)))
     }
     
     /// Deserialize content from storage
@@ -539,7 +539,7 @@ impl ContentCache {
     {
         match serde_json::from_slice(data) {
             Ok(value) => Ok(Some(value)),
-            Err(e) => Err(TolloError::content_cache(format!("Deserialization failed: {}", e))),
+            Err(e) => Err(XTauriError::content_cache(format!("Deserialization failed: {}", e))),
         }
     }
     
@@ -548,7 +548,7 @@ impl ContentCache {
         key.split(':')
             .next()
             .map(|s| s.to_string())
-            .ok_or_else(|| TolloError::content_cache("Invalid cache key format".to_string()))
+            .ok_or_else(|| XTauriError::content_cache("Invalid cache key format".to_string()))
     }
     
     /// Extract content type from cache key (assumes format "profile_id:content_type:...")
@@ -617,7 +617,7 @@ impl ContentCache {
         
         // Also enforce database limits
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         let count: i64 = db.query_row(
             "SELECT COUNT(*) FROM xtream_content_cache WHERE content_type = ?",

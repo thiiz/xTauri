@@ -1,4 +1,4 @@
-use crate::error::{Result, TolloError};
+use crate::error::{Result, XTauriError};
 use crate::xtream::types::{XtreamProfile, CreateProfileRequest, UpdateProfileRequest, ProfileCredentials, AuthenticationResult, AuthenticationErrorType};
 use crate::xtream::credential_manager::CredentialManager;
 use rusqlite::Connection;
@@ -25,7 +25,7 @@ impl ProfileManager {
     pub fn create_profile(&self, request: CreateProfileRequest) -> Result<String> {
         // Use tokio runtime to run async validation
         let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| TolloError::internal(format!("Failed to create async runtime: {}", e)))?;
+            .map_err(|e| XTauriError::internal(format!("Failed to create async runtime: {}", e)))?;
         
         rt.block_on(self.create_profile_async(request))
     }
@@ -38,7 +38,7 @@ impl ProfileManager {
         
         // Check if profile name already exists
         if self.profile_name_exists(&request.name)? {
-            return Err(TolloError::profile_validation(format!("Profile name '{}' already exists", request.name)));
+            return Err(XTauriError::profile_validation(format!("Profile name '{}' already exists", request.name)));
         }
         
         let profile_id = Uuid::new_v4().to_string();
@@ -58,7 +58,7 @@ impl ProfileManager {
         // Insert profile into database
         let now_str = now.to_rfc3339();
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute(
             "INSERT INTO xtream_profiles (id, name, url, username, encrypted_credentials, created_at, updated_at, is_active) 
@@ -88,7 +88,7 @@ impl ProfileManager {
         
         // Check if profile name already exists
         if self.profile_name_exists(&request.name)? {
-            return Err(TolloError::profile_validation(format!("Profile name '{}' already exists", request.name)));
+            return Err(XTauriError::profile_validation(format!("Profile name '{}' already exists", request.name)));
         }
         
         // Validate credentials against Xtream server
@@ -99,7 +99,7 @@ impl ProfileManager {
         };
         
         if !self.validate_credentials(&credentials).await? {
-            return Err(TolloError::XtreamInvalidCredentials);
+            return Err(XTauriError::XtreamInvalidCredentials);
         }
         
         let profile_id = Uuid::new_v4().to_string();
@@ -119,7 +119,7 @@ impl ProfileManager {
         // Insert profile into database
         let now_str = now.to_rfc3339();
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute(
             "INSERT INTO xtream_profiles (id, name, url, username, encrypted_credentials, created_at, updated_at, is_active) 
@@ -146,7 +146,7 @@ impl ProfileManager {
     pub fn update_profile(&self, id: &str, request: UpdateProfileRequest) -> Result<()> {
         // Check if profile exists
         let existing_profile = self.get_profile(id)?
-            .ok_or_else(|| TolloError::xtream_profile_not_found(id.to_string()))?;
+            .ok_or_else(|| XTauriError::xtream_profile_not_found(id.to_string()))?;
         
         // Validate the request
         self.validate_update_request(&request)?;
@@ -154,7 +154,7 @@ impl ProfileManager {
         // Check if new name conflicts with existing profiles (if name is being changed)
         if let Some(ref new_name) = request.name {
             if new_name != &existing_profile.name && self.profile_name_exists(new_name)? {
-                return Err(TolloError::profile_validation(format!("Profile name '{}' already exists", new_name)));
+                return Err(XTauriError::profile_validation(format!("Profile name '{}' already exists", new_name)));
             }
         }
         
@@ -187,7 +187,7 @@ impl ProfileManager {
         
         // Update profile in database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         // Build update query based on what fields are being updated
         if let Some(name) = &request.name {
@@ -231,7 +231,7 @@ impl ProfileManager {
     pub fn delete_profile(&self, id: &str) -> Result<()> {
         // Check if profile exists
         if self.get_profile(id)?.is_none() {
-            return Err(TolloError::xtream_profile_not_found(id.to_string()));
+            return Err(XTauriError::xtream_profile_not_found(id.to_string()));
         }
         
         // Clear cached credentials
@@ -239,7 +239,7 @@ impl ProfileManager {
         
         // Delete from database (cascade will handle related data)
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute("DELETE FROM xtream_profiles WHERE id = ?", [id])?;
         
@@ -249,7 +249,7 @@ impl ProfileManager {
     /// Get all profiles
     pub fn get_profiles(&self) -> Result<Vec<XtreamProfile>> {
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db.prepare(
             "SELECT id, name, url, username, created_at, updated_at, last_used, is_active 
@@ -300,7 +300,7 @@ impl ProfileManager {
     /// Get a specific profile by ID
     pub fn get_profile(&self, id: &str) -> Result<Option<XtreamProfile>> {
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db.prepare(
             "SELECT id, name, url, username, created_at, updated_at, last_used, is_active 
@@ -343,7 +343,7 @@ impl ProfileManager {
         match result {
             Ok(profile) => Ok(Some(profile)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(TolloError::Database(e)),
+            Err(e) => Err(XTauriError::Database(e)),
         }
     }
     
@@ -356,7 +356,7 @@ impl ProfileManager {
         
         // Get from database
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db.prepare("SELECT encrypted_credentials FROM xtream_profiles WHERE id = ?")?;
         let result = stmt.query_row([id], |row| {
@@ -366,8 +366,8 @@ impl ProfileManager {
         
         let encoded_credentials = match result {
             Ok(encoded) => encoded,
-            Err(rusqlite::Error::QueryReturnedNoRows) => return Err(TolloError::xtream_profile_not_found(id.to_string())),
-            Err(e) => return Err(TolloError::Database(e)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => return Err(XTauriError::xtream_profile_not_found(id.to_string())),
+            Err(e) => return Err(XTauriError::Database(e)),
         };
         
         // Decrypt credentials
@@ -384,11 +384,11 @@ impl ProfileManager {
     pub fn set_active_profile(&self, id: &str) -> Result<()> {
         // Check if profile exists
         if self.get_profile(id)?.is_none() {
-            return Err(TolloError::xtream_profile_not_found(id.to_string()));
+            return Err(XTauriError::xtream_profile_not_found(id.to_string()));
         }
         
         let mut db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         let now_str = Utc::now().to_rfc3339();
         
         let tx = db.transaction()?;
@@ -450,17 +450,17 @@ impl ProfileManager {
             }
             Err(e) => {
                 let error_type = match &e {
-                    TolloError::XtreamInvalidCredentials => AuthenticationErrorType::InvalidCredentials,
-                    TolloError::XtreamAuthenticationFailed { .. } => AuthenticationErrorType::AuthenticationFailed,
-                    TolloError::XtreamApiError { status, .. } => {
+                    XTauriError::XtreamInvalidCredentials => AuthenticationErrorType::InvalidCredentials,
+                    XTauriError::XtreamAuthenticationFailed { .. } => AuthenticationErrorType::AuthenticationFailed,
+                    XTauriError::XtreamApiError { status, .. } => {
                         if *status >= 500 {
                             AuthenticationErrorType::ServerError
                         } else {
                             AuthenticationErrorType::ClientError
                         }
                     }
-                    TolloError::Network(_) => AuthenticationErrorType::NetworkError,
-                    TolloError::Timeout { .. } => AuthenticationErrorType::TimeoutError,
+                    XTauriError::Network(_) => AuthenticationErrorType::NetworkError,
+                    XTauriError::Timeout { .. } => AuthenticationErrorType::TimeoutError,
                     _ => AuthenticationErrorType::UnknownError,
                 };
                 
@@ -478,7 +478,7 @@ impl ProfileManager {
     pub async fn update_profile_async(&self, id: &str, request: UpdateProfileRequest) -> Result<()> {
         // Check if profile exists
         let existing_profile = self.get_profile(id)?
-            .ok_or_else(|| TolloError::xtream_profile_not_found(id.to_string()))?;
+            .ok_or_else(|| XTauriError::xtream_profile_not_found(id.to_string()))?;
         
         // Validate the request
         self.validate_update_request(&request)?;
@@ -486,7 +486,7 @@ impl ProfileManager {
         // Check if new name conflicts with existing profiles (if name is being changed)
         if let Some(ref new_name) = request.name {
             if new_name != &existing_profile.name && self.profile_name_exists(new_name)? {
-                return Err(TolloError::profile_validation(format!("Profile name '{}' already exists", new_name)));
+                return Err(XTauriError::profile_validation(format!("Profile name '{}' already exists", new_name)));
             }
         }
         
@@ -504,7 +504,7 @@ impl ProfileManager {
             
             // Validate new credentials
             if !self.validate_credentials(&updated_credentials).await? {
-                return Err(TolloError::XtreamInvalidCredentials);
+                return Err(XTauriError::XtreamInvalidCredentials);
             }
         }
         
@@ -515,7 +515,7 @@ impl ProfileManager {
     /// Get the currently active profile
     pub fn get_active_profile(&self) -> Result<Option<XtreamProfile>> {
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db.prepare(
             "SELECT id, name, url, username, created_at, updated_at, last_used, is_active 
@@ -558,7 +558,7 @@ impl ProfileManager {
         match result {
             Ok(profile) => Ok(Some(profile)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(TolloError::Database(e)),
+            Err(e) => Err(XTauriError::Database(e)),
         }
     }
     
@@ -574,9 +574,9 @@ impl ProfileManager {
         // Attempt authentication
         match client.authenticate().await {
             Ok(_) => Ok(true),
-            Err(TolloError::XtreamInvalidCredentials) => Ok(false),
-            Err(TolloError::XtreamAuthenticationFailed { .. }) => Ok(false),
-            Err(TolloError::XtreamApiError { .. }) => Ok(false),
+            Err(XTauriError::XtreamInvalidCredentials) => Ok(false),
+            Err(XTauriError::XtreamAuthenticationFailed { .. }) => Ok(false),
+            Err(XTauriError::XtreamApiError { .. }) => Ok(false),
             Err(e) => Err(e), // Network or other errors should be propagated
         }
     }
@@ -584,7 +584,7 @@ impl ProfileManager {
     /// Check if a profile name already exists
     fn profile_name_exists(&self, name: &str) -> Result<bool> {
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let count: i64 = db.query_row(
             "SELECT COUNT(*) FROM xtream_profiles WHERE name = ?",
@@ -598,11 +598,11 @@ impl ProfileManager {
     /// Validate create profile request
     fn validate_create_request(&self, request: &CreateProfileRequest) -> Result<()> {
         if request.name.trim().is_empty() {
-            return Err(TolloError::profile_validation("Profile name cannot be empty".to_string()));
+            return Err(XTauriError::profile_validation("Profile name cannot be empty".to_string()));
         }
         
         if request.name.len() > 100 {
-            return Err(TolloError::profile_validation("Profile name cannot exceed 100 characters".to_string()));
+            return Err(XTauriError::profile_validation("Profile name cannot exceed 100 characters".to_string()));
         }
         
         let credentials = ProfileCredentials {
@@ -620,11 +620,11 @@ impl ProfileManager {
     fn validate_update_request(&self, request: &UpdateProfileRequest) -> Result<()> {
         if let Some(ref name) = request.name {
             if name.trim().is_empty() {
-                return Err(TolloError::profile_validation("Profile name cannot be empty".to_string()));
+                return Err(XTauriError::profile_validation("Profile name cannot be empty".to_string()));
             }
             
             if name.len() > 100 {
-                return Err(TolloError::profile_validation("Profile name cannot exceed 100 characters".to_string()));
+                return Err(XTauriError::profile_validation("Profile name cannot exceed 100 characters".to_string()));
             }
         }
         
@@ -637,13 +637,13 @@ impl ProfileManager {
             
             if let Some(ref username) = request.username {
                 if username.trim().is_empty() {
-                    return Err(TolloError::profile_validation("Username cannot be empty".to_string()));
+                    return Err(XTauriError::profile_validation("Username cannot be empty".to_string()));
                 }
             }
             
             if let Some(ref password) = request.password {
                 if password.is_empty() {
-                    return Err(TolloError::profile_validation("Password cannot be empty".to_string()));
+                    return Err(XTauriError::profile_validation("Password cannot be empty".to_string()));
                 }
             }
         }
@@ -656,11 +656,11 @@ impl ProfileManager {
         self.validate_url_format(&credentials.url)?;
         
         if credentials.username.trim().is_empty() {
-            return Err(TolloError::profile_validation("Username cannot be empty".to_string()));
+            return Err(XTauriError::profile_validation("Username cannot be empty".to_string()));
         }
         
         if credentials.password.is_empty() {
-            return Err(TolloError::profile_validation("Password cannot be empty".to_string()));
+            return Err(XTauriError::profile_validation("Password cannot be empty".to_string()));
         }
         
         Ok(())
@@ -671,14 +671,14 @@ impl ProfileManager {
         use url::Url;
         
         let parsed_url = Url::parse(url)
-            .map_err(|_| TolloError::profile_validation("Invalid URL format".to_string()))?;
+            .map_err(|_| XTauriError::profile_validation("Invalid URL format".to_string()))?;
         
         if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
-            return Err(TolloError::profile_validation("URL must use http or https scheme".to_string()));
+            return Err(XTauriError::profile_validation("URL must use http or https scheme".to_string()));
         }
         
         if parsed_url.host().is_none() {
-            return Err(TolloError::profile_validation("URL must have a valid host".to_string()));
+            return Err(XTauriError::profile_validation("URL must have a valid host".to_string()));
         }
         
         Ok(())
@@ -688,12 +688,12 @@ impl ProfileManager {
     pub async fn update_last_used(&self, id: &str) -> Result<()> {
         // Check if profile exists
         if self.get_profile(id)?.is_none() {
-            return Err(TolloError::xtream_profile_not_found(id.to_string()));
+            return Err(XTauriError::xtream_profile_not_found(id.to_string()));
         }
         
         let now_str = Utc::now().to_rfc3339();
         let db = self.db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db.execute(
             "UPDATE xtream_profiles SET last_used = ? WHERE id = ?",
@@ -719,7 +719,7 @@ impl ProfileManager {
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
             Self::delete_profile_sync_static(&db, &credential_manager, &id)
-        }).await.map_err(|e| TolloError::internal(format!("Task join error: {}", e)))?
+        }).await.map_err(|e| XTauriError::internal(format!("Task join error: {}", e)))?
     }
     
     pub async fn get_profiles_async_wrapper(&self) -> Result<Vec<XtreamProfile>> {
@@ -727,7 +727,7 @@ impl ProfileManager {
         let db = Arc::clone(&self.db);
         tokio::task::spawn_blocking(move || {
             Self::get_profiles_sync_static(&db)
-        }).await.map_err(|e| TolloError::internal(format!("Task join error: {}", e)))?
+        }).await.map_err(|e| XTauriError::internal(format!("Task join error: {}", e)))?
     }
     
     pub async fn get_profile_async_wrapper(&self, id: &str) -> Result<Option<XtreamProfile>> {
@@ -736,7 +736,7 @@ impl ProfileManager {
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
             Self::get_profile_sync_static(&db, &id)
-        }).await.map_err(|e| TolloError::internal(format!("Task join error: {}", e)))?
+        }).await.map_err(|e| XTauriError::internal(format!("Task join error: {}", e)))?
     }
     
     pub async fn get_profile_credentials_async_wrapper(&self, id: &str) -> Result<ProfileCredentials> {
@@ -746,7 +746,7 @@ impl ProfileManager {
         let id = id.to_string();
         tokio::task::spawn_blocking(move || {
             Self::get_profile_credentials_sync_static(&db, &credential_manager, &id)
-        }).await.map_err(|e| TolloError::internal(format!("Task join error: {}", e)))?
+        }).await.map_err(|e| XTauriError::internal(format!("Task join error: {}", e)))?
     }
     
     /// Static synchronous versions for use in async contexts
@@ -757,7 +757,7 @@ impl ProfileManager {
     ) -> Result<()> {
         // Check if profile exists
         if Self::get_profile_sync_static(db, id)?.is_none() {
-            return Err(TolloError::xtream_profile_not_found(id.to_string()));
+            return Err(XTauriError::xtream_profile_not_found(id.to_string()));
         }
         
         // Clear cached credentials
@@ -765,7 +765,7 @@ impl ProfileManager {
         
         // Delete from database (cascade will handle related data)
         let db_conn = db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
         
         db_conn.execute("DELETE FROM xtream_profiles WHERE id = ?", [id])?;
         
@@ -774,7 +774,7 @@ impl ProfileManager {
     
     fn get_profiles_sync_static(db: &Arc<Mutex<Connection>>) -> Result<Vec<XtreamProfile>> {
         let db_conn = db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db_conn.prepare(
             "SELECT id, name, url, username, created_at, updated_at, last_used, is_active 
@@ -824,7 +824,7 @@ impl ProfileManager {
     
     fn get_profile_sync_static(db: &Arc<Mutex<Connection>>, id: &str) -> Result<Option<XtreamProfile>> {
         let db_conn = db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db_conn.prepare(
             "SELECT id, name, url, username, created_at, updated_at, last_used, is_active 
@@ -867,7 +867,7 @@ impl ProfileManager {
         match result {
             Ok(profile) => Ok(Some(profile)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(TolloError::Database(e)),
+            Err(e) => Err(XTauriError::Database(e)),
         }
     }
     
@@ -883,7 +883,7 @@ impl ProfileManager {
         
         // Get from database
         let db_conn = db.lock()
-            .map_err(|_| TolloError::lock_acquisition("database connection"))?;
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
             
         let mut stmt = db_conn.prepare("SELECT encrypted_credentials FROM xtream_profiles WHERE id = ?")?;
         let result = stmt.query_row([id], |row| {
@@ -893,8 +893,8 @@ impl ProfileManager {
         
         let encoded_credentials = match result {
             Ok(encoded) => encoded,
-            Err(rusqlite::Error::QueryReturnedNoRows) => return Err(TolloError::xtream_profile_not_found(id.to_string())),
-            Err(e) => return Err(TolloError::Database(e)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => return Err(XTauriError::xtream_profile_not_found(id.to_string())),
+            Err(e) => return Err(XTauriError::Database(e)),
         };
         
         // Decrypt credentials
@@ -953,7 +953,7 @@ impl ProfileManager {
         let history_id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
         let content_data_str = serde_json::to_string(content_data)
-            .map_err(|e| TolloError::internal(format!("Failed to serialize content data: {}", e)))?;
+            .map_err(|e| XTauriError::internal(format!("Failed to serialize content data: {}", e)))?;
         
         let db = self.db.lock().unwrap();
         // Insert or update existing history entry
@@ -1292,7 +1292,7 @@ mod tests {
                 assert!(create_result.is_err());
                 // The error should be related to invalid credentials or network failure
                 let error = create_result.unwrap_err();
-                assert!(matches!(error, TolloError::XtreamInvalidCredentials | TolloError::XtreamAuthenticationFailed { .. } | TolloError::Network(_) | TolloError::Timeout { .. }));
+                assert!(matches!(error, XTauriError::XtreamInvalidCredentials | XTauriError::XtreamAuthenticationFailed { .. } | XTauriError::Network(_) | XTauriError::Timeout { .. }));
             }
             Err(_) => {
                 // Timeout occurred, which is acceptable for this test

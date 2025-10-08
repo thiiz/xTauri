@@ -5204,42 +5204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tollo"
-version = "0.1.8"
-dependencies = [
- "aes",
- "anyhow",
- "base64 0.22.1",
- "chrono",
- "criterion",
- "dashmap",
- "dirs 5.0.1",
- "hmac",
- "keyring",
- "mockall",
- "pbkdf2",
- "proptest",
- "rand 0.8.5",
- "regex",
- "reqwest",
- "rstest",
- "rusqlite",
- "serde",
- "serde_json",
- "serial_test",
- "sha2",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tokio-test",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "toml"
 version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6397,6 +6361,42 @@ checksum = "ec1cdab258fb55c0da61328dc52c8764709b249011b2cad0454c72f0bf10a1f6"
 dependencies = [
  "libc",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "xtauri"
+version = "0.1.8"
+dependencies = [
+ "aes",
+ "anyhow",
+ "base64 0.22.1",
+ "chrono",
+ "criterion",
+ "dashmap",
+ "dirs 5.0.1",
+ "hmac",
+ "keyring",
+ "mockall",
+ "pbkdf2",
+ "proptest",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "rstest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sha2",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "url",
+ "uuid",
 ]
 
 [[package]]
