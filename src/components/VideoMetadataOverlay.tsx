@@ -6,6 +6,7 @@ interface VideoMetadataOverlayProps {
   statusText: string;
   qualityBadge: string;
   currentEPG: EnhancedEPGListing | null;
+  nextEPG?: EnhancedEPGListing | null;
   metadata: {
     genre?: string | null;
     year?: string | null;
@@ -24,6 +25,7 @@ const VideoMetadataOverlay: React.FC<VideoMetadataOverlayProps> = ({
   statusText,
   qualityBadge,
   currentEPG,
+  nextEPG,
   metadata,
   onToggle,
 }) => {
@@ -51,7 +53,8 @@ const VideoMetadataOverlay: React.FC<VideoMetadataOverlayProps> = ({
         {/* EPG Information for Live Channels */}
         {currentEPG && (
           <div className="epg-section">
-            <div className="epg-program">
+            <div className="epg-program current-program">
+              <div className="program-label">Now Playing</div>
               <div className="program-title">{currentEPG.title}</div>
               <div className="program-time">
                 {new Date((currentEPG.start_timestamp || 0) * 1000).toLocaleTimeString([], {
@@ -65,7 +68,41 @@ const VideoMetadataOverlay: React.FC<VideoMetadataOverlayProps> = ({
               {currentEPG.description && (
                 <div className="program-description">{currentEPG.description}</div>
               )}
+              {/* Progress bar for current program */}
+              {currentEPG.start_timestamp && currentEPG.stop_timestamp && (
+                <div className="program-progress">
+                  <div
+                    className="program-progress-bar"
+                    style={{
+                      width: `${Math.min(100, Math.max(0,
+                        ((Date.now() / 1000 - currentEPG.start_timestamp) /
+                          (currentEPG.stop_timestamp - currentEPG.start_timestamp)) * 100
+                      ))}%`
+                    }}
+                  />
+                </div>
+              )}
             </div>
+
+            {/* Next program information */}
+            {nextEPG && (
+              <div className="epg-program next-program">
+                <div className="program-label">Up Next</div>
+                <div className="program-title">{nextEPG.title}</div>
+                <div className="program-time">
+                  {new Date((nextEPG.start_timestamp || 0) * 1000).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })} - {new Date((nextEPG.stop_timestamp || 0) * 1000).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+                {nextEPG.description && (
+                  <div className="program-description">{nextEPG.description}</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

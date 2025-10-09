@@ -218,6 +218,57 @@ impl ContentCache {
         }
     }
     
+    /// Get cached content by key, including stale (expired) entries
+    pub fn get_stale<T>(&self, key: &str) -> Result<Option<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let start_time = Instant::now();
+        let content_type = self.extract_content_type_from_key(key);
+        
+        // First check memory cache (including expired)
+        if let Some(cached) = self.memory_cache.get(key) {
+            self.record_cache_hit(&content_type, start_time.elapsed());
+            return self.deserialize_content(&cached.data);
+        }
+        
+        // Check database cache (including expired)
+        let db = self.db.lock()
+            .map_err(|_| XTauriError::lock_acquisition("database connection"))?;
+            
+        let mut stmt = db.prepare(
+            "SELECT data, expires_at FROM xtream_content_cache WHERE cache_key = ?"
+        )?;
+        
+        let result = stmt.query_row([key], |row| {
+            let data: Vec<u8> = row.get(0)?;
+            let expires_at_str: String = row.get(1)?;
+            let expires_at = DateTime::parse_from_rfc3339(&expires_at_str)
+                .map_err(|_| rusqlite::Error::InvalidColumnType(1, "expires_at".to_string(), rusqlite::types::Type::Text))?
+                .with_timezone(&Utc);
+            
+            Ok(CachedContent {
+                data,
+                expires_at,
+                content_type: "unknown".to_string(),
+            })
+        });
+        
+        match result {
+            Ok(cached) => {
+                // Store in memory cache for faster access
+                self.memory_cache.insert(key.to_string(), cached.clone());
+                self.record_cache_hit(&content_type, start_time.elapsed());
+                self.deserialize_content(&cached.data)
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                self.record_cache_miss(&content_type);
+                Ok(None)
+            }
+            Err(e) => Err(XTauriError::Database(e)),
+        }
+    }
+    
     /// Set cached content with optional TTL
     pub fn set<T>(&self, key: &str, value: &T, ttl: Option<Duration>) -> Result<()>
     where

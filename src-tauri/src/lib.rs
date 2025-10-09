@@ -1,4 +1,5 @@
 mod channels;
+pub mod content_cache;
 pub mod database;
 mod error;
 mod favorites;
@@ -27,6 +28,25 @@ use state::{ChannelCacheState, DbState, ImageCacheState};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use xtream::{XtreamState, ProfileManager, CredentialManager, ContentCache};
+use content_cache::{
+    ContentCacheState, 
+    get_cached_xtream_channels, 
+    search_cached_xtream_channels,
+    get_cached_xtream_movies,
+    search_cached_xtream_movies,
+    filter_cached_xtream_movies,
+    get_cached_xtream_series,
+    get_cached_xtream_series_details,
+    search_cached_xtream_series,
+    start_content_sync,
+    cancel_content_sync,
+    get_sync_progress,
+    get_sync_status,
+    get_sync_settings,
+    update_sync_settings,
+    clear_content_cache,
+    get_content_cache_stats,
+};
 
 // Import all the command functions from their respective modules
 use channels::*;
@@ -79,6 +99,15 @@ fn setup_xtream_state(db_connection: Arc<Mutex<rusqlite::Connection>>) -> Result
     Ok(XtreamState::new(profile_manager, content_cache))
 }
 
+fn setup_content_cache_state() -> Result<ContentCacheState> {
+    // Create a new database connection for content cache
+    let db_connection = database::initialize_database()
+        .map_err(|e| XTauriError::database_init(format!("Failed to create content cache DB connection: {}", e)))?;
+    
+    let db_arc = Arc::new(Mutex::new(db_connection));
+    ContentCacheState::new(db_arc)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let (db_connection, _channels) = match initialize_application() {
@@ -126,6 +155,16 @@ pub fn run() {
                 }
             };
             app.manage(xtream_state);
+            
+            // Initialize Content Cache state
+            let content_cache_state = match setup_content_cache_state() {
+                Ok(state) => state,
+                Err(e) => {
+                    eprintln!("Failed to initialize Content Cache state: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+            app.manage(content_cache_state);
             
             Ok(())
         })
@@ -251,6 +290,61 @@ pub fn run() {
             get_xtream_playback_history,
             add_to_xtream_playback_history,
             update_xtream_playback_position,
+            // Content cache commands
+            get_cached_xtream_channels,
+            search_cached_xtream_channels,
+            get_cached_xtream_movies,
+            search_cached_xtream_movies,
+            filter_cached_xtream_movies,
+            get_cached_xtream_series,
+            get_cached_xtream_series_details,
+            search_cached_xtream_series,
+            // Sync control commands
+            start_content_sync,
+            cancel_content_sync,
+            get_sync_progress,
+            get_sync_status,
+            get_sync_settings,
+            update_sync_settings,
+            clear_content_cache,
+            get_cache_stats,
+            // Xtream favorites commands
+            add_xtream_favorite,
+            remove_xtream_favorite,
+            remove_xtream_favorite_by_content,
+            get_xtream_favorites,
+            get_xtream_favorites_by_type,
+            is_xtream_favorite,
+            clear_xtream_favorites,
+            // Xtream history commands
+            add_xtream_history,
+            update_xtream_history_position,
+            get_xtream_history,
+            get_xtream_history_by_type,
+            get_xtream_history_item,
+            remove_xtream_history,
+            clear_xtream_history,
+            clear_old_xtream_history,
+            // Search and filter commands
+            search_all_xtream_content,
+            filter_channels_advanced,
+            filter_movies_advanced,
+            filter_series_advanced,
+            // Search history commands
+            add_xtream_search_history,
+            get_xtream_search_history,
+            get_xtream_search_suggestions,
+            clear_xtream_search_history,
+            remove_xtream_search_history_item,
+            clear_old_xtream_search_history,
+            // Saved filters commands
+            create_xtream_saved_filter,
+            get_xtream_saved_filters,
+            get_xtream_saved_filter,
+            update_xtream_saved_filter,
+            update_xtream_saved_filter_last_used,
+            delete_xtream_saved_filter,
+            clear_xtream_saved_filters,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

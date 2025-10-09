@@ -336,18 +336,38 @@
 }
 
 /* Enhanced EPG Display */
-.epg-info {
+.epg-section {
   margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.epg-program {
   padding: 0.75rem;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 6px;
-  border-left: 3px solid var(--accent-primary);
-}
-
-.current-program {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+}
+
+.epg-program.current-program {
+  border-left: 3px solid var(--accent-primary);
+}
+
+.epg-program.next-program {
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  opacity: 0.85;
+}
+
+.program-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
 }
 
 .program-title {
@@ -355,6 +375,10 @@
   font-weight: 600;
   color: var(--accent-primary);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.next-program .program-title {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .program-time {
@@ -366,7 +390,7 @@
 .program-description {
   font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.8);
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   line-height: 1.5;
   max-height: 3.6em;
   overflow: hidden;
@@ -374,6 +398,22 @@
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+
+/* Program Progress Bar */
+.program-progress {
+  margin-top: 0.5rem;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.program-progress-bar {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 1s linear;
 }
 
 /* Enhanced Content Info */

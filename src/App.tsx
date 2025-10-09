@@ -247,12 +247,16 @@ function App() {
 
   // Memoized content selection handlers
   const handleContentSelect = useCallback((content: ContentItem | null) => {
-    if (content) {
-      setSelectedXtreamContent(content);
-      setSelectedChannel(null);
-    } else {
-      setSelectedXtreamContent(null);
-    }
+    setSelectedXtreamContent(prevContent => {
+      // Avoid state update if content hasn't changed
+      if (prevContent === content) return prevContent;
+
+      if (content) {
+        setSelectedChannel(null);
+        return content;
+      }
+      return null;
+    });
   }, [setSelectedChannel]);
 
   const handleMovieSelect = useCallback((movie: XtreamMoviesListing) => {

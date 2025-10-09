@@ -1022,3 +1022,487 @@ mod tests {
         assert_eq!(filtered_array[0]["name"], "The Office");
     }
 }
+
+// Favorites commands
+use crate::xtream::{XtreamFavoritesDb, AddFavoriteRequest, XtreamFavorite};
+
+/// Add a favorite for a profile
+#[tauri::command]
+pub async fn add_xtream_favorite(
+    state: State<'_, XtreamState>,
+    request: AddFavoriteRequest,
+) -> Result<String, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::add_favorite(&conn_guard, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Remove a favorite by ID
+#[tauri::command]
+pub async fn remove_xtream_favorite(
+    state: State<'_, XtreamState>,
+    favorite_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::remove_favorite(&conn_guard, &favorite_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Remove a favorite by content
+#[tauri::command]
+pub async fn remove_xtream_favorite_by_content(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    content_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::remove_favorite_by_content(&conn_guard, &profile_id, &content_type, &content_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Get all favorites for a profile
+#[tauri::command]
+pub async fn get_xtream_favorites(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<Vec<XtreamFavorite>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::get_favorites(&conn_guard, &profile_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Get favorites by content type for a profile
+#[tauri::command]
+pub async fn get_xtream_favorites_by_type(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+) -> Result<Vec<XtreamFavorite>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::get_favorites_by_type(&conn_guard, &profile_id, &content_type)
+        .map_err(|e| e.to_string())
+}
+
+/// Check if an item is favorited
+#[tauri::command]
+pub async fn is_xtream_favorite(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    content_id: String,
+) -> Result<bool, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::is_favorite(&conn_guard, &profile_id, &content_type, &content_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear all favorites for a profile
+#[tauri::command]
+pub async fn clear_xtream_favorites(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamFavoritesDb::clear_favorites(&conn_guard, &profile_id)
+        .map_err(|e| e.to_string())
+}
+
+// History commands
+use crate::xtream::{XtreamHistoryDb, AddHistoryRequest, UpdatePositionRequest, XtreamHistory};
+
+/// Add or update a history item for a profile
+#[tauri::command]
+pub async fn add_xtream_history(
+    state: State<'_, XtreamState>,
+    request: AddHistoryRequest,
+) -> Result<String, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::add_history(&conn_guard, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Update playback position for a history item
+#[tauri::command]
+pub async fn update_xtream_history_position(
+    state: State<'_, XtreamState>,
+    request: UpdatePositionRequest,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::update_position(&conn_guard, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Get history for a profile
+#[tauri::command]
+pub async fn get_xtream_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    limit: Option<i64>,
+) -> Result<Vec<XtreamHistory>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::get_history(&conn_guard, &profile_id, limit)
+        .map_err(|e| e.to_string())
+}
+
+/// Get history by content type for a profile
+#[tauri::command]
+pub async fn get_xtream_history_by_type(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    limit: Option<i64>,
+) -> Result<Vec<XtreamHistory>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::get_history_by_type(&conn_guard, &profile_id, &content_type, limit)
+        .map_err(|e| e.to_string())
+}
+
+/// Get a specific history item
+#[tauri::command]
+pub async fn get_xtream_history_item(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: String,
+    content_id: String,
+) -> Result<Option<XtreamHistory>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::get_history_item(&conn_guard, &profile_id, &content_type, &content_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Remove a history item
+#[tauri::command]
+pub async fn remove_xtream_history(
+    state: State<'_, XtreamState>,
+    history_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::remove_history(&conn_guard, &history_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear all history for a profile
+#[tauri::command]
+pub async fn clear_xtream_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::clear_history(&conn_guard, &profile_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear old history items (older than specified days)
+#[tauri::command]
+pub async fn clear_old_xtream_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    days: i64,
+) -> Result<usize, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+    
+    XtreamHistoryDb::clear_old_history(&conn_guard, &profile_id, days)
+        .map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// Search and Filter Commands
+// ============================================================================
+
+use crate::xtream::search::{SearchOptions, SearchResult, search_all_content};
+use crate::xtream::filter::{ChannelFilter, MovieFilter, SeriesFilter, filter_channels, filter_movies, filter_series};
+use crate::content_cache::{XtreamChannel, XtreamMovie, XtreamSeries};
+
+/// Search across all content types (channels, movies, series)
+#[tauri::command]
+pub async fn search_all_xtream_content(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    options: SearchOptions,
+) -> Result<SearchResult, String> {
+    // Fetch all content types as JSON and deserialize
+    let channels: Vec<XtreamChannel> = if options.search_channels {
+        let channels_json = get_xtream_channels(state.clone(), profile_id.clone(), None).await?;
+        serde_json::from_value(channels_json).map_err(|e| e.to_string())?
+    } else {
+        Vec::new()
+    };
+
+    let movies: Vec<XtreamMovie> = if options.search_movies {
+        let movies_json = get_xtream_movies(state.clone(), profile_id.clone(), None).await?;
+        serde_json::from_value(movies_json).map_err(|e| e.to_string())?
+    } else {
+        Vec::new()
+    };
+
+    let series: Vec<XtreamSeries> = if options.search_series {
+        let series_json = get_xtream_series(state.clone(), profile_id.clone(), None).await?;
+        serde_json::from_value(series_json).map_err(|e| e.to_string())?
+    } else {
+        Vec::new()
+    };
+
+    // Perform search
+    Ok(search_all_content(&channels, &movies, &series, &options))
+}
+
+/// Filter channels with advanced criteria
+#[tauri::command]
+pub async fn filter_channels_advanced(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    filter: ChannelFilter,
+) -> Result<Vec<XtreamChannel>, String> {
+    // Fetch channels as JSON and deserialize
+    let channels_json = get_xtream_channels(state, profile_id, filter.category_id.clone()).await?;
+    let channels: Vec<XtreamChannel> = serde_json::from_value(channels_json).map_err(|e| e.to_string())?;
+    
+    // Apply filter
+    Ok(filter_channels(&channels, &filter))
+}
+
+/// Filter movies with advanced criteria
+#[tauri::command]
+pub async fn filter_movies_advanced(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    filter: MovieFilter,
+) -> Result<Vec<XtreamMovie>, String> {
+    // Fetch movies as JSON and deserialize
+    let movies_json = get_xtream_movies(state, profile_id, filter.category_id.clone()).await?;
+    let movies: Vec<XtreamMovie> = serde_json::from_value(movies_json).map_err(|e| e.to_string())?;
+    
+    // Apply filter
+    Ok(filter_movies(&movies, &filter))
+}
+
+/// Filter series with advanced criteria
+#[tauri::command]
+pub async fn filter_series_advanced(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    filter: SeriesFilter,
+) -> Result<Vec<XtreamSeries>, String> {
+    // Fetch series as JSON and deserialize
+    let series_json = get_xtream_series(state, profile_id, filter.category_id.clone()).await?;
+    let series: Vec<XtreamSeries> = serde_json::from_value(series_json).map_err(|e| e.to_string())?;
+    
+    // Apply filter
+    Ok(filter_series(&series, &filter))
+}
+
+// ============================================================================
+// Search History Commands
+// ============================================================================
+
+use crate::xtream::search_history::{SearchHistoryDb, SearchHistoryItem, AddSearchHistoryRequest};
+
+/// Add a search to history
+#[tauri::command]
+pub async fn add_xtream_search_history(
+    state: State<'_, XtreamState>,
+    request: AddSearchHistoryRequest,
+) -> Result<String, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::add_search(&conn_guard, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Get search history for a profile
+#[tauri::command]
+pub async fn get_xtream_search_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    limit: Option<usize>,
+) -> Result<Vec<SearchHistoryItem>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::get_search_history(&conn_guard, &profile_id, limit)
+        .map_err(|e| e.to_string())
+}
+
+/// Get search suggestions for a profile
+#[tauri::command]
+pub async fn get_xtream_search_suggestions(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    limit: Option<usize>,
+) -> Result<Vec<String>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::get_search_suggestions(&conn_guard, &profile_id, limit)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear search history for a profile
+#[tauri::command]
+pub async fn clear_xtream_search_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::clear_search_history(&conn_guard, &profile_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Remove a specific search history item
+#[tauri::command]
+pub async fn remove_xtream_search_history_item(
+    state: State<'_, XtreamState>,
+    id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::remove_search_history_item(&conn_guard, &id)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear old search history (older than specified days)
+#[tauri::command]
+pub async fn clear_old_xtream_search_history(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    days: i64,
+) -> Result<usize, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SearchHistoryDb::clear_old_search_history(&conn_guard, &profile_id, days)
+        .map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// Saved Filters Commands
+// ============================================================================
+
+use crate::xtream::saved_filters::{SavedFiltersDb, SavedFilter, CreateSavedFilterRequest, UpdateSavedFilterRequest};
+
+/// Create a new saved filter
+#[tauri::command]
+pub async fn create_xtream_saved_filter(
+    state: State<'_, XtreamState>,
+    request: CreateSavedFilterRequest,
+) -> Result<String, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::create_filter(&conn_guard, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Get all saved filters for a profile
+#[tauri::command]
+pub async fn get_xtream_saved_filters(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+    content_type: Option<String>,
+) -> Result<Vec<SavedFilter>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::get_filters(&conn_guard, &profile_id, content_type.as_deref())
+        .map_err(|e| e.to_string())
+}
+
+/// Get a specific saved filter by ID
+#[tauri::command]
+pub async fn get_xtream_saved_filter(
+    state: State<'_, XtreamState>,
+    id: String,
+) -> Result<Option<SavedFilter>, String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::get_filter(&conn_guard, &id)
+        .map_err(|e| e.to_string())
+}
+
+/// Update a saved filter
+#[tauri::command]
+pub async fn update_xtream_saved_filter(
+    state: State<'_, XtreamState>,
+    id: String,
+    request: UpdateSavedFilterRequest,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::update_filter(&conn_guard, &id, &request)
+        .map_err(|e| e.to_string())
+}
+
+/// Update last used timestamp for a saved filter
+#[tauri::command]
+pub async fn update_xtream_saved_filter_last_used(
+    state: State<'_, XtreamState>,
+    id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::update_last_used(&conn_guard, &id)
+        .map_err(|e| e.to_string())
+}
+
+/// Delete a saved filter
+#[tauri::command]
+pub async fn delete_xtream_saved_filter(
+    state: State<'_, XtreamState>,
+    id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::delete_filter(&conn_guard, &id)
+        .map_err(|e| e.to_string())
+}
+
+/// Clear all saved filters for a profile
+#[tauri::command]
+pub async fn clear_xtream_saved_filters(
+    state: State<'_, XtreamState>,
+    profile_id: String,
+) -> Result<(), String> {
+    let conn = state.profile_manager.get_db_connection();
+    let conn_guard = conn.lock().map_err(|e| format!("Failed to lock database: {}", e))?;
+
+    SavedFiltersDb::clear_filters(&conn_guard, &profile_id)
+        .map_err(|e| e.to_string())
+}

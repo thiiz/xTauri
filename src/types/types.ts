@@ -808,3 +808,91 @@ export type EPGSearchOptions = {
 export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
+
+/**
+ * Xtream history item for tracking viewed content
+ */
+export type XtreamHistory = {
+  /** Unique identifier for the history item */
+  id: string;
+  /** Profile ID this history belongs to */
+  profile_id: string;
+  /** Type of content (channel, movie, series) */
+  content_type: string;
+  /** ID of the content */
+  content_id: string;
+  /** Full content data for display */
+  content_data: any;
+  /** Timestamp when content was watched */
+  watched_at: string;
+  /** Playback position in seconds (for resume functionality) */
+  position?: number;
+  /** Total duration in seconds */
+  duration?: number;
+};
+
+/**
+ * Request to add content to history
+ */
+export type AddHistoryRequest = {
+  /** Profile ID */
+  profile_id: string;
+  /** Type of content (channel, movie, series) */
+  content_type: string;
+  /** ID of the content */
+  content_id: string;
+  /** Full content data */
+  content_data: any;
+  /** Playback position in seconds */
+  position?: number;
+  /** Total duration in seconds */
+  duration?: number;
+};
+
+/**
+ * Request to update playback position
+ */
+export type UpdatePositionRequest = {
+  /** Profile ID */
+  profile_id: string;
+  /** Type of content (channel, movie, series) */
+  content_type: string;
+  /** ID of the content */
+  content_id: string;
+  /** Current playback position in seconds */
+  position: number;
+  /** Total duration in seconds */
+  duration?: number;
+};
+
+/**
+ * Xtream favorite item
+ */
+export type XtreamFavorite = {
+  /** Unique identifier for the favorite */
+  id: string;
+  /** Profile ID this favorite belongs to */
+  profile_id: string;
+  /** Type of content (channel, movie, series) */
+  content_type: string;
+  /** ID of the content */
+  content_id: string;
+  /** Full content data for display */
+  content_data: any;
+  /** Timestamp when favorite was added */
+  created_at: string;
+};
+
+/**
+ * Request to add content to favorites
+ */
+export type AddFavoriteRequest = {
+  /** Profile ID */
+  profile_id: string;
+  /** Type of content (channel, movie, series) */
+  content_type: string;
+  /** ID of the content */
+  content_id: string;
+  /** Full content data */
+  content_data: any;
+};

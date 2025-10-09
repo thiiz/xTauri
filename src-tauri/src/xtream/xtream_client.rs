@@ -1949,25 +1949,51 @@ impl XtreamClient {
     
     /// Make an API request and handle common errors
     async fn make_api_request(&self, url: &str) -> Result<Value> {
-        let response = self.client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| XTauriError::Network(e))?;
+        self.make_api_request_with_retry(url, crate::xtream::retry::RetryConfig::default()).await
+    }
+    
+    /// Make an API request with custom retry configuration
+    async fn make_api_request_with_retry(&self, url: &str, retry_config: crate::xtream::retry::RetryConfig) -> Result<Value> {
+        use crate::xtream::retry::retry_with_backoff;
         
-        if !response.status().is_success() {
-            return Err(XTauriError::xtream_api_error(
-                response.status().as_u16(),
-                format!("API request failed: {}", response.status()),
-            ));
-        }
+        let url = url.to_string();
+        let client = self.client.clone();
         
-        let data: Value = response
-            .json()
-            .await
-            .map_err(|e| XTauriError::xtream_api_error(500, format!("Invalid JSON response: {}", e)))?;
-        
-        Ok(data)
+        retry_with_backoff(
+            || {
+                let url = url.clone();
+                let client = client.clone();
+                async move {
+                    let response = client
+                        .get(&url)
+                        .send()
+                        .await
+                        .map_err(|e| {
+                            if e.is_timeout() {
+                                XTauriError::timeout("API request")
+                            } else {
+                                XTauriError::Network(e)
+                            }
+                        })?;
+                    
+                    let status = response.status();
+                    if !status.is_success() {
+                        return Err(XTauriError::xtream_api_error(
+                            status.as_u16(),
+                            format!("API request failed: {}", status),
+                        ));
+                    }
+                    
+                    let data: Value = response
+                        .json()
+                        .await
+                        .map_err(|e| XTauriError::xtream_api_error(500, format!("Invalid JSON response: {}", e)))?;
+                    
+                    Ok(data)
+                }
+            },
+            retry_config,
+        ).await
     }
     
     /// Normalize and validate base URL

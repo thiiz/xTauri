@@ -127,18 +127,38 @@
 
 /* EPG Section */
 .epg-section {
-  background: rgba(0, 0, 0, 0.5);
-  border-left: 3px solid var(--accent-primary, #3b82f6);
-  border-radius: 6px;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  backdrop-filter: blur(8px);
 }
 
 .epg-program {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  padding: 1rem;
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.epg-program.current-program {
+  border-left: 3px solid var(--accent-primary, #3b82f6);
+}
+
+.epg-program.next-program {
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  opacity: 0.9;
+}
+
+.program-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
 }
 
 .program-title {
@@ -146,6 +166,10 @@
   font-weight: 600;
   color: var(--accent-primary, #3b82f6);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.next-program .program-title {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .program-time {
@@ -164,6 +188,23 @@
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+
+/* Program Progress Bar */
+.program-progress {
+  margin-top: 0.5rem;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.program-progress-bar {
+  height: 100%;
+  background: var(--accent-primary, #3b82f6);
+  border-radius: 2px;
+  transition: width 1s linear;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
 /* Content Metadata Section */
@@ -260,6 +301,15 @@
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+}
+
+/* Live Controls - Simplified layout without progress bar */
+.modern-video-controls.live-controls {
+  padding: 0.75rem 1rem;
+}
+
+.modern-video-controls.live-controls .controls-row {
+  margin-top: 0;
 }
 
 /* Progress Bar */
@@ -413,6 +463,31 @@
 
 .time-separator {
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Live Badge */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
 }
 
 /* Playback Rate Button */

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import Hls from "hls.js";
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { useContentPlayback } from "../hooks/useContentPlayback";
 import { useChannelStore, useSettingsStore } from "../stores";
 import { useProfileStore } from "../stores/profileStore";
@@ -61,6 +61,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     // Video state
     const [codecWarning, setCodecWarning] = useState(false);
     const [currentEPG, setCurrentEPG] = useState<EnhancedEPGListing | null>(null);
+    const [nextEPG, setNextEPG] = useState<EnhancedEPGListing | null>(null);
     const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
     const [streamUrl, setStreamUrl] = useState<string | null>(null);
     const [showResumePrompt, setShowResumePrompt] = useState(false);
@@ -107,14 +108,28 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       setIsMuted(savedIsMuted);
     }, [savedVolume, savedIsMuted]);
 
-    // Generate stream URL
+    // Generate stream URL - Use ref to track content ID to prevent unnecessary regeneration
+    const lastContentIdRef = useRef<string | null>(null);
+
     useEffect(() => {
       const generateStreamUrl = async () => {
         if (!activeContent || !activeProfile) {
           setStreamUrl(null);
           setShowResumePrompt(false);
+          lastContentIdRef.current = null;
           return;
         }
+
+        // Generate a unique content identifier
+        const contentId = getContentId(activeContent);
+        const currentContentId = `${activeContent.type}-${contentId}`;
+
+        // Skip if same content (prevents re-generation on re-renders)
+        if (lastContentIdRef.current === currentContentId) {
+          return;
+        }
+
+        lastContentIdRef.current = currentContentId;
 
         if (activeContent.type === 'xtream-movie' || activeContent.type === 'xtream-series') {
           const resumePos = getResumePosition(activeContent);
@@ -136,7 +151,6 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
 
         setIsGeneratingUrl(true);
         try {
-          const contentId = getContentId(activeContent);
           const contentType = getXtreamContentType(activeContent.type);
 
           if (contentId && contentType) {
@@ -157,13 +171,14 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       };
 
       generateStreamUrl();
-    }, [activeContent, activeProfile, getResumePosition]);
+    }, [activeContent, activeProfile]);
 
     // Fetch EPG data
     useEffect(() => {
       const fetchEPGData = async () => {
         if (!activeContent || !activeProfile || activeContent.type !== 'xtream-channel') {
           setCurrentEPG(null);
+          setNextEPG(null);
           return;
         }
 
@@ -174,6 +189,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
           const existingEPG = currentAndNextEPG[channelId];
           if (existingEPG?.current) {
             setCurrentEPG(existingEPG.current);
+            setNextEPG(existingEPG.next || null);
             return;
           }
 
@@ -185,6 +201,12 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
             );
             if (currentProgram) {
               setCurrentEPG(currentProgram);
+
+              // Find next program
+              const nextProgram = channelEPG.find(program =>
+                (program.start_timestamp || 0) > now
+              );
+              setNextEPG(nextProgram || null);
               return;
             }
           }
@@ -211,12 +233,38 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       video.muted = isMuted;
     }, [streamUrl, ref, volume, isMuted]);
 
-    // Setup HLS.js
+    // Save playback position when content changes or component unmounts
     useEffect(() => {
-      if (hlsRef.current) {
+      return () => {
+        if (!ref || typeof ref === 'function') return;
+        const video = ref.current;
+        if (!video || !activeContent) return;
+
+        // Save final position for VOD content
+        if (activeContent.type === 'xtream-movie' || activeContent.type === 'xtream-series') {
+          if (video.currentTime > 0 && video.duration > 0) {
+            updatePlaybackPosition(video.currentTime, video.duration);
+          }
+        }
+      };
+    }, [activeContent, ref, updatePlaybackPosition]);
+
+    // Setup HLS.js - Use ref to track stream URL to prevent unnecessary recreation
+    const lastStreamUrlRef = useRef<string | null>(null);
+
+    useEffect(() => {
+      // Skip if same stream URL (prevents recreation on re-renders)
+      if (streamUrl && lastStreamUrlRef.current === streamUrl) {
+        return;
+      }
+
+      // Cleanup previous HLS instance only when URL actually changes
+      if (hlsRef.current && lastStreamUrlRef.current !== streamUrl) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+
+      lastStreamUrlRef.current = streamUrl;
 
       if (!streamUrl || !ref || typeof ref === 'function') {
         return;
@@ -268,12 +316,15 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
+                console.log('Network error, attempting recovery...');
                 hls.startLoad();
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('Media error, attempting recovery...');
                 hls.recoverMediaError();
                 break;
               default:
+                console.error('Fatal HLS error:', data);
                 setCodecWarning(true);
                 hls.destroy();
                 break;
@@ -318,20 +369,30 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
       }
 
       return () => {
-        if (hlsRef.current) {
+        // Only destroy on unmount, not on every re-render
+        if (hlsRef.current && !lastStreamUrlRef.current) {
           hlsRef.current.destroy();
           hlsRef.current = null;
         }
       };
-    }, [streamUrl, autoplay, ref, activeContent]);
+    }, [streamUrl, autoplay, ref]);
+
+    // Throttle playback position updates to avoid excessive backend calls
+    const lastPositionUpdateRef = useRef<number>(0);
+    const POSITION_UPDATE_INTERVAL = 5000; // Update every 5 seconds
 
     // Video event handlers
     const handleVideoTimeUpdate = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
       const video = event.currentTarget;
       setCurrentTime(video.currentTime);
 
+      // Throttle playback position updates for VOD content
       if (activeContent && (activeContent.type === 'xtream-movie' || activeContent.type === 'xtream-series')) {
-        updatePlaybackPosition(video.currentTime, video.duration);
+        const now = Date.now();
+        if (now - lastPositionUpdateRef.current >= POSITION_UPDATE_INTERVAL) {
+          updatePlaybackPosition(video.currentTime, video.duration);
+          lastPositionUpdateRef.current = now;
+        }
       }
 
       // Check if we should show next episode countdown (30 seconds before end)
@@ -367,7 +428,15 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     }, [resumePosition, showResumePrompt]);
 
     const handlePlay = useCallback(() => setIsPlaying(true), []);
-    const handlePause = useCallback(() => setIsPlaying(false), []);
+    const handlePause = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+      setIsPlaying(false);
+
+      // Save playback position when paused
+      const video = event.currentTarget;
+      if (activeContent && (activeContent.type === 'xtream-movie' || activeContent.type === 'xtream-series')) {
+        updatePlaybackPosition(video.currentTime, video.duration);
+      }
+    }, [activeContent, updatePlaybackPosition]);
     const handleVolumeChange = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
       const video = event.currentTarget;
       const newVolume = video.volume;
@@ -616,7 +685,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
         case 'xtream-movie':
           return 'Movie';
         case 'xtream-series':
-          return 'Movie';
+          return 'Series';
         default:
           return null;
       }
@@ -759,6 +828,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
                     statusText={getStatusText()}
                     qualityBadge={getQualityBadge()}
                     currentEPG={currentEPG}
+                    nextEPG={nextEPG}
                     metadata={metadata}
                     onToggle={toggleMetadataDisplay}
                   />
@@ -777,6 +847,7 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
                     audioTracks={audioTracks}
                     selectedSubtitle={selectedSubtitle}
                     selectedAudioTrack={selectedAudioTrack}
+                    isLive={activeContent?.type === 'channel' || activeContent?.type === 'xtream-channel'}
                     onPlayPause={togglePlayPause}
                     onMute={toggleMute}
                     onVolumeChange={handleVolumeSliderChange}
@@ -840,4 +911,14 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
 
 ModernVideoPlayer.displayName = "ModernVideoPlayer";
 
-export default ModernVideoPlayer;
+// Memoize to prevent unnecessary re-renders
+export default React.memo(ModernVideoPlayer, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.selectedContent?.type === nextProps.selectedContent?.type &&
+    prevProps.selectedContent?.data === nextProps.selectedContent?.data &&
+    prevProps.nextEpisode === nextProps.nextEpisode &&
+    prevProps.onPlayNextEpisode === nextProps.onPlayNextEpisode &&
+    prevProps.onContentChange === nextProps.onContentChange
+  );
+});

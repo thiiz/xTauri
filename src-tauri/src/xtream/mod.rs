@@ -5,6 +5,21 @@ pub mod content_cache;
 pub mod database;
 pub mod types;
 pub mod commands;
+pub mod favorites;
+pub mod history;
+pub mod retry;
+pub mod graceful_degradation;
+pub mod session_manager;
+pub mod search;
+pub mod filter;
+pub mod search_history;
+pub mod saved_filters;
+pub mod performance_monitor;
+pub mod prefetch;
+pub mod performance_commands;
+
+#[cfg(test)]
+mod tests;
 
 pub use profile_manager::ProfileManager;
 pub use xtream_client::XtreamClient;
@@ -12,4 +27,15 @@ pub use credential_manager::CredentialManager;
 pub use content_cache::ContentCache;
 pub use database::XtreamDatabase;
 pub use types::*;
-pub use commands::*;
+pub use commands::XtreamState;
+pub use favorites::*;
+pub use history::*;
+pub use retry::*;
+pub use graceful_degradation::*;
+pub use session_manager::*;
+pub use search::*;
+pub use filter::*;
+pub use search_history::*;
+pub use saved_filters::*;
+pub use performance_monitor::*;
+pub use prefetch::*;

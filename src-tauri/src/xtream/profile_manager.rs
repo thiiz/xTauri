@@ -1009,6 +1009,11 @@ impl ProfileManager {
         
         Ok(())
     }
+    
+    /// Get the database connection (for use by other modules)
+    pub fn get_db_connection(&self) -> Arc<Mutex<Connection>> {
+        Arc::clone(&self.db)
+    }
 }
 
 #[cfg(test)]

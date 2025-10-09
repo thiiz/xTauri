@@ -1,12 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
-import {
+import type {
   CurrentAndNextEPG,
   EnhancedEPGListing,
   EPGSearchOptions,
   EPGTimeFilter,
   XtreamCategory,
   XtreamChannel,
+  XtreamFavorite,
+  XtreamHistory,
   XtreamMovie,
   XtreamMoviesListing,
   XtreamShow,
@@ -30,6 +32,14 @@ interface XtreamContentState {
   // EPG data
   epgData: Record<string, EnhancedEPGListing[]>;
   currentAndNextEPG: Record<string, CurrentAndNextEPG>;
+
+  // History and favorites
+  history: XtreamHistory[];
+  favorites: XtreamFavorite[];
+  isLoadingHistory: boolean;
+  isLoadingFavorites: boolean;
+  historyError: string | null;
+  favoritesError: string | null;
 
   // Content type and navigation state
   activeContentType: 'channels' | 'movies' | 'series';
@@ -102,6 +112,24 @@ interface XtreamContentState {
   fetchNextPage: (profileId: string) => Promise<void>;
   fetchPreviousPage: (profileId: string) => Promise<void>;
 
+  // History actions
+  fetchHistory: (profileId: string, limit?: number) => Promise<void>;
+  fetchHistoryByType: (profileId: string, contentType: string, limit?: number) => Promise<void>;
+  addToHistory: (profileId: string, contentType: string, contentId: string, contentData: any, position?: number, duration?: number) => Promise<void>;
+  updatePlaybackPosition: (profileId: string, contentType: string, contentId: string, position: number, duration?: number) => Promise<void>;
+  removeFromHistory: (historyId: string) => Promise<void>;
+  clearHistory: (profileId: string) => Promise<void>;
+  getHistoryItem: (profileId: string, contentType: string, contentId: string) => XtreamHistory | null;
+
+  // Favorites actions
+  fetchFavorites: (profileId: string) => Promise<void>;
+  fetchFavoritesByType: (profileId: string, contentType: string) => Promise<void>;
+  addToFavorites: (profileId: string, contentType: string, contentId: string, contentData: any) => Promise<void>;
+  removeFromFavorites: (favoriteId: string) => Promise<void>;
+  removeFromFavoritesByContent: (profileId: string, contentType: string, contentId: string) => Promise<void>;
+  clearFavorites: (profileId: string) => Promise<void>;
+  isFavorite: (profileId: string, contentType: string, contentId: string) => boolean;
+
   // Clear actions
   clearChannels: () => void;
   clearMovies: () => void;
@@ -125,6 +153,12 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   filteredSeries: [],
   epgData: {},
   currentAndNextEPG: {},
+  history: [],
+  favorites: [],
+  isLoadingHistory: false,
+  isLoadingFavorites: false,
+  historyError: null,
+  favoritesError: null,
 
   // Content type and navigation state
   activeContentType: 'channels',
@@ -803,6 +837,227 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
     }
   },
 
+  // History actions
+  fetchHistory: async (profileId: string, limit?: number) => {
+    set({ isLoadingHistory: true, historyError: null });
+    try {
+      const history = await invoke<XtreamHistory[]>('get_xtream_history', {
+        profileId,
+        limit: limit || null
+      });
+      set({ history, isLoadingHistory: false });
+    } catch (error) {
+      set({
+        historyError: error as string,
+        isLoadingHistory: false,
+        history: []
+      });
+    }
+  },
+
+  fetchHistoryByType: async (profileId: string, contentType: string, limit?: number) => {
+    set({ isLoadingHistory: true, historyError: null });
+    try {
+      const history = await invoke<XtreamHistory[]>('get_xtream_history_by_type', {
+        profileId,
+        contentType,
+        limit: limit || null
+      });
+      set({ history, isLoadingHistory: false });
+    } catch (error) {
+      set({
+        historyError: error as string,
+        isLoadingHistory: false,
+        history: []
+      });
+    }
+  },
+
+  addToHistory: async (profileId: string, contentType: string, contentId: string, contentData: any, position?: number, duration?: number) => {
+    try {
+      await invoke('add_xtream_history', {
+        request: {
+          profile_id: profileId,
+          content_type: contentType,
+          content_id: contentId,
+          content_data: contentData,
+          position: position || null,
+          duration: duration || null
+        }
+      });
+      // Refresh history after adding
+      await get().fetchHistory(profileId);
+    } catch (error) {
+      set({ historyError: error as string });
+      throw error;
+    }
+  },
+
+  updatePlaybackPosition: async (profileId: string, contentType: string, contentId: string, position: number, duration?: number) => {
+    try {
+      await invoke('update_xtream_history_position', {
+        request: {
+          profile_id: profileId,
+          content_type: contentType,
+          content_id: contentId,
+          position,
+          duration: duration || null
+        }
+      });
+      // Update local state
+      set(state => ({
+        history: state.history.map(item =>
+          item.profile_id === profileId &&
+            item.content_type === contentType &&
+            item.content_id === contentId
+            ? { ...item, position, duration, watched_at: new Date().toISOString() }
+            : item
+        )
+      }));
+    } catch (error) {
+      set({ historyError: error as string });
+      throw error;
+    }
+  },
+
+  removeFromHistory: async (historyId: string) => {
+    try {
+      await invoke('remove_xtream_history', { historyId });
+      // Remove from local state
+      set(state => ({
+        history: state.history.filter(item => item.id !== historyId)
+      }));
+    } catch (error) {
+      set({ historyError: error as string });
+      throw error;
+    }
+  },
+
+  clearHistory: async (profileId: string) => {
+    try {
+      await invoke('clear_xtream_history', { profileId });
+      set({ history: [] });
+    } catch (error) {
+      set({ historyError: error as string });
+      throw error;
+    }
+  },
+
+  getHistoryItem: (profileId: string, contentType: string, contentId: string) => {
+    const state = get();
+    return state.history.find(
+      item =>
+        item.profile_id === profileId &&
+        item.content_type === contentType &&
+        item.content_id === contentId
+    ) || null;
+  },
+
+  // Favorites actions
+  fetchFavorites: async (profileId: string) => {
+    set({ isLoadingFavorites: true, favoritesError: null });
+    try {
+      const favorites = await invoke<XtreamFavorite[]>('get_xtream_favorites', { profileId });
+      set({ favorites, isLoadingFavorites: false });
+    } catch (error) {
+      set({
+        favoritesError: error as string,
+        isLoadingFavorites: false,
+        favorites: []
+      });
+    }
+  },
+
+  fetchFavoritesByType: async (profileId: string, contentType: string) => {
+    set({ isLoadingFavorites: true, favoritesError: null });
+    try {
+      const favorites = await invoke<XtreamFavorite[]>('get_xtream_favorites_by_type', {
+        profileId,
+        contentType
+      });
+      set({ favorites, isLoadingFavorites: false });
+    } catch (error) {
+      set({
+        favoritesError: error as string,
+        isLoadingFavorites: false,
+        favorites: []
+      });
+    }
+  },
+
+  addToFavorites: async (profileId: string, contentType: string, contentId: string, contentData: any) => {
+    try {
+      await invoke('add_xtream_favorite', {
+        request: {
+          profile_id: profileId,
+          content_type: contentType,
+          content_id: contentId,
+          content_data: contentData
+        }
+      });
+      // Refresh favorites after adding
+      await get().fetchFavorites(profileId);
+    } catch (error) {
+      set({ favoritesError: error as string });
+      throw error;
+    }
+  },
+
+  removeFromFavorites: async (favoriteId: string) => {
+    try {
+      await invoke('remove_xtream_favorite', { favoriteId });
+      // Remove from local state
+      set(state => ({
+        favorites: state.favorites.filter(item => item.id !== favoriteId)
+      }));
+    } catch (error) {
+      set({ favoritesError: error as string });
+      throw error;
+    }
+  },
+
+  removeFromFavoritesByContent: async (profileId: string, contentType: string, contentId: string) => {
+    try {
+      await invoke('remove_xtream_favorite_by_content', {
+        profileId,
+        contentType,
+        contentId
+      });
+      // Remove from local state
+      set(state => ({
+        favorites: state.favorites.filter(
+          item =>
+            !(item.profile_id === profileId &&
+              item.content_type === contentType &&
+              item.content_id === contentId)
+        )
+      }));
+    } catch (error) {
+      set({ favoritesError: error as string });
+      throw error;
+    }
+  },
+
+  clearFavorites: async (profileId: string) => {
+    try {
+      await invoke('clear_xtream_favorites', { profileId });
+      set({ favorites: [] });
+    } catch (error) {
+      set({ favoritesError: error as string });
+      throw error;
+    }
+  },
+
+  isFavorite: (profileId: string, contentType: string, contentId: string) => {
+    const state = get();
+    return state.favorites.some(
+      item =>
+        item.profile_id === profileId &&
+        item.content_type === contentType &&
+        item.content_id === contentId
+    );
+  },
+
   // Clear actions
   clearChannels: () => {
     set({
@@ -888,6 +1143,8 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
       filteredSeries: [],
       epgData: {},
       currentAndNextEPG: {},
+      history: [],
+      favorites: [],
       activeContentType: 'channels',
       selectedCategoryId: null,
       searchQuery: '',
@@ -902,12 +1159,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
       isLoadingSeries: false,
       isLoadingSeriesCategories: false,
       isLoadingEPG: false,
+      isLoadingHistory: false,
+      isLoadingFavorites: false,
       isFiltering: false,
       isSearching: false,
       channelsError: null,
       moviesError: null,
       seriesError: null,
       epgError: null,
+      historyError: null,
+      favoritesError: null,
       filterError: null,
       searchError: null,
     });

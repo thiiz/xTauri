@@ -187,6 +187,31 @@ pub fn initialize_database() -> Result<Connection> {
         [],
     )?;
 
+    // Create indexes for performance optimization
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_cache_profile_type 
+         ON xtream_content_cache(profile_id, content_type)",
+        [],
+    ).ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_cache_expires 
+         ON xtream_content_cache(expires_at)",
+        [],
+    ).ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_profiles_active 
+         ON xtream_profiles(is_active) WHERE is_active = TRUE",
+        [],
+    ).ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_profiles_last_used 
+         ON xtream_profiles(last_used DESC)",
+        [],
+    ).ok();
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS xtream_favorites (
             id TEXT PRIMARY KEY,
@@ -200,6 +225,19 @@ pub fn initialize_database() -> Result<Connection> {
         )",
         [],
     )?;
+
+    // Create indexes for favorites
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_favorites_profile_type 
+         ON xtream_favorites(profile_id, content_type)",
+        [],
+    ).ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_favorites_content 
+         ON xtream_favorites(profile_id, content_type, content_id)",
+        [],
+    ).ok();
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS xtream_history (
@@ -216,6 +254,19 @@ pub fn initialize_database() -> Result<Connection> {
         [],
     )?;
 
+    // Create indexes for history
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_history_profile_watched 
+         ON xtream_history(profile_id, watched_at DESC)",
+        [],
+    ).ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_xtream_history_content 
+         ON xtream_history(profile_id, content_type, content_id)",
+        [],
+    ).ok();
+
     // Add position and duration columns to existing xtream_history table if they don't exist
     conn.execute(
         "ALTER TABLE xtream_history ADD COLUMN position REAL",
@@ -226,6 +277,48 @@ pub fn initialize_database() -> Result<Connection> {
         "ALTER TABLE xtream_history ADD COLUMN duration REAL",
         [],
     ).ok(); // Use ok() to ignore error if column already exists
+
+    // Search history table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_search_history (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            query TEXT NOT NULL,
+            content_types TEXT NOT NULL,
+            results_count INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_search_history_profile 
+         ON xtream_search_history(profile_id, created_at DESC)",
+        [],
+    ).ok();
+
+    // Saved filters table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS xtream_saved_filters (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            filter_data TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_used DATETIME,
+            FOREIGN KEY (profile_id) REFERENCES xtream_profiles(id) ON DELETE CASCADE,
+            UNIQUE(profile_id, name, content_type)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_saved_filters_profile 
+         ON xtream_saved_filters(profile_id, content_type)",
+        [],
+    ).ok();
 
     let list_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM channel_lists", [], |row| row.get(0))?;
@@ -245,6 +338,9 @@ pub fn initialize_database() -> Result<Connection> {
             [],
         )?;
     }
+
+    // Initialize content cache tables
+    crate::content_cache::initialize_content_cache_tables(&conn)?;
 
     Ok(conn)
 }

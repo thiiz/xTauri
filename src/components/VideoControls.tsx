@@ -14,6 +14,7 @@ interface VideoControlsProps {
   audioTracks: any[];
   selectedSubtitle: number;
   selectedAudioTrack: number;
+  isLive?: boolean; // New prop to indicate live content
   onPlayPause: () => void;
   onMute: () => void;
   onVolumeChange: (volume: number) => void;
@@ -39,6 +40,7 @@ const VideoControls: React.FC<VideoControlsProps> = ({
   audioTracks,
   selectedSubtitle,
   selectedAudioTrack,
+  isLive = false,
   onPlayPause,
   onMute,
   onVolumeChange,
@@ -94,25 +96,27 @@ const VideoControls: React.FC<VideoControlsProps> = ({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className={`modern-video-controls ${show ? 'show' : ''}`}>
-      {/* Progress Bar */}
-      <div
-        className="progress-bar-container"
-        onClick={handleProgressClick}
-        onMouseDown={handleProgressMouseDown}
-        onMouseMove={handleProgressMouseMove}
-        onMouseUp={handleProgressMouseUp}
-        onMouseLeave={handleProgressMouseUp}
-      >
-        <div className="progress-bar">
-          <div
-            className="progress-bar-filled"
-            style={{ width: `${progress}%` }}
-          >
-            <div className="progress-bar-handle"></div>
+    <div className={`modern-video-controls ${show ? 'show' : ''} ${isLive ? 'live-controls' : ''}`}>
+      {/* Progress Bar - Hidden for live content */}
+      {!isLive && (
+        <div
+          className="progress-bar-container"
+          onClick={handleProgressClick}
+          onMouseDown={handleProgressMouseDown}
+          onMouseMove={handleProgressMouseMove}
+          onMouseUp={handleProgressMouseUp}
+          onMouseLeave={handleProgressMouseUp}
+        >
+          <div className="progress-bar">
+            <div
+              className="progress-bar-filled"
+              style={{ width: `${progress}%` }}
+            >
+              <div className="progress-bar-handle"></div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Controls Row */}
       <div className="controls-row">
@@ -174,10 +178,17 @@ const VideoControls: React.FC<VideoControlsProps> = ({
             )}
           </div>
 
+          {/* Time Display - Show "LIVE" badge for live content */}
           <div className="time-display">
-            <span className="current-time">{formatTime(currentTime)}</span>
-            <span className="time-separator"> / </span>
-            <span className="duration-time">{formatTime(duration)}</span>
+            {isLive ? (
+              <span className="live-badge">● LIVE</span>
+            ) : (
+              <>
+                <span className="current-time">{formatTime(currentTime)}</span>
+                <span className="time-separator"> / </span>
+                <span className="duration-time">{formatTime(duration)}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -258,34 +269,36 @@ const VideoControls: React.FC<VideoControlsProps> = ({
             </div>
           )}
 
-          {/* Playback Rate */}
-          <div className="control-menu-wrapper">
-            <button
-              className="control-btn playback-rate-btn"
-              onClick={() => setShowPlaybackRateMenu(!showPlaybackRateMenu)}
-              title="Playback Speed"
-            >
-              <span className="playback-rate-text">{playbackRate}x</span>
-            </button>
+          {/* Playback Rate - Hidden for live content */}
+          {!isLive && (
+            <div className="control-menu-wrapper">
+              <button
+                className="control-btn playback-rate-btn"
+                onClick={() => setShowPlaybackRateMenu(!showPlaybackRateMenu)}
+                title="Playback Speed"
+              >
+                <span className="playback-rate-text">{playbackRate}x</span>
+              </button>
 
-            {showPlaybackRateMenu && (
-              <div className="control-menu playback-rate-menu">
-                <div className="menu-header">Playback Speed</div>
-                {playbackRates.map((rate) => (
-                  <button
-                    key={rate}
-                    className={`menu-item ${playbackRate === rate ? 'active' : ''}`}
-                    onClick={() => {
-                      onPlaybackRateChange(rate);
-                      setShowPlaybackRateMenu(false);
-                    }}
-                  >
-                    {rate === 1 ? 'Normal' : `${rate}x`}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              {showPlaybackRateMenu && (
+                <div className="control-menu playback-rate-menu">
+                  <div className="menu-header">Playback Speed</div>
+                  {playbackRates.map((rate) => (
+                    <button
+                      key={rate}
+                      className={`menu-item ${playbackRate === rate ? 'active' : ''}`}
+                      onClick={() => {
+                        onPlaybackRateChange(rate);
+                        setShowPlaybackRateMenu(false);
+                      }}
+                    >
+                      {rate === 1 ? 'Normal' : `${rate}x`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Picture-in-Picture */}
           <button

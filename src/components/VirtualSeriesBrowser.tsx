@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
+import { useNormalizedSeriesDetails } from "../hooks/useNormalizedSeriesDetails";
 import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamEpisode, XtreamSeason, XtreamShow, XtreamShowListing } from "../types/types";
@@ -24,6 +25,10 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'details'>('grid');
 
+  // Normaliza os detalhes da série para garantir estrutura consistente
+  const normalizedSeriesDetails = useNormalizedSeriesDetails(seriesDetails);
+
+  console.log("seriesDetails: ", seriesDetails)
   const {
     series,
     seriesCategories,
@@ -53,10 +58,10 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
   }, [activeProfile, fetchSeriesCategories, fetchSeries]);
 
   useEffect(() => {
-    if (seriesDetails && seriesDetails.seasons.length > 0) {
-      setSelectedSeason(seriesDetails.seasons[0]);
+    if (normalizedSeriesDetails?.seasons && normalizedSeriesDetails.seasons.length > 0) {
+      setSelectedSeason(normalizedSeriesDetails.seasons[0]);
     }
-  }, [seriesDetails]);
+  }, [normalizedSeriesDetails]);
 
   const handleCategoryFilter = useCallback(async (categoryId: string | null) => {
     if (!activeProfile) return;
@@ -111,9 +116,9 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
   // Formatting functions are now imported from utils/formatters
 
   const seasonEpisodes = useMemo(() => {
-    if (!seriesDetails || !selectedSeason) return [];
-    return seriesDetails.episodes[selectedSeason.season_number.toString()] || [];
-  }, [seriesDetails, selectedSeason]);
+    if (!normalizedSeriesDetails || !selectedSeason) return [];
+    return normalizedSeriesDetails.episodes[selectedSeason.season_number.toString()] || [];
+  }, [normalizedSeriesDetails, selectedSeason]);
 
   const rowRenderer = useCallback((index: number) => {
     const startIdx = index * 6;
@@ -177,7 +182,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
 
   const totalRows = Math.ceil(displaySeries.length / 6);
 
-  if (viewMode === 'details' && seriesDetails && selectedSeries) {
+  if (viewMode === 'details' && normalizedSeriesDetails && selectedSeries) {
     return (
       <div className="virtual-series-details-container">
         {/* Hero Section with Background */}
@@ -245,25 +250,27 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
         <div className="series-content-section">
           <div className="season-selector">
             <h2 className="section-title">Episodes</h2>
-            <div className="season-dropdown-wrapper">
-              <select
-                className="season-dropdown"
-                value={selectedSeason?.season_number?.toString() || ''}
-                onChange={(e) => {
-                  const selectedValue = e.target.value;
-                  const season = seriesDetails.seasons.find(s => s.season_number.toString() === selectedValue);
-                  if (season) {
-                    setSelectedSeason(season);
-                  }
-                }}
-              >
-                {seriesDetails.seasons.map((season) => (
-                  <option key={season.season_number} value={season.season_number}>
-                    Season {season.season_number} ({season.episode_count} episodes)
-                  </option>
-                ))}
-              </select>
-            </div>
+            {normalizedSeriesDetails.seasons.length > 0 && (
+              <div className="season-dropdown-wrapper">
+                <select
+                  className="season-dropdown"
+                  value={selectedSeason?.season_number?.toString() || ''}
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
+                    const season = normalizedSeriesDetails.seasons.find(s => s.season_number.toString() === selectedValue);
+                    if (season) {
+                      setSelectedSeason(season);
+                    }
+                  }}
+                >
+                  {normalizedSeriesDetails.seasons.map((season) => (
+                    <option key={season.season_number} value={season.season_number}>
+                      Season {season.season_number} ({season.episode_count} episodes)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {selectedSeason && seasonEpisodes.length === 0 ? (
