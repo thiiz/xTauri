@@ -15,6 +15,32 @@ import type {
   XtreamShowListing
 } from '../types/types';
 
+// Sync types
+export interface SyncProgress {
+  status: 'idle' | 'syncing' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  current_step: string;
+  channels_synced: number;
+  movies_synced: number;
+  series_synced: number;
+  error_message?: string;
+}
+
+export interface SyncSettings {
+  auto_sync_enabled: boolean;
+  sync_interval_hours: number;
+  sync_on_startup: boolean;
+  sync_channels: boolean;
+  sync_movies: boolean;
+  sync_series: boolean;
+}
+
+export interface ContentCacheStats {
+  channels_count: number;
+  movies_count: number;
+  series_count: number;
+}
+
 interface XtreamContentState {
   // Content data
   channels: XtreamChannel[];
@@ -40,6 +66,13 @@ interface XtreamContentState {
   isLoadingFavorites: boolean;
   historyError: string | null;
   favoritesError: string | null;
+
+  // Sync state
+  syncProgress: SyncProgress | null;
+  syncSettings: SyncSettings | null;
+  cacheStats: ContentCacheStats | null;
+  isSyncing: boolean;
+  syncError: string | null;
 
   // Content type and navigation state
   activeContentType: 'channels' | 'movies' | 'series';
@@ -130,6 +163,15 @@ interface XtreamContentState {
   clearFavorites: (profileId: string) => Promise<void>;
   isFavorite: (profileId: string, contentType: string, contentId: string) => boolean;
 
+  // Sync actions
+  startContentSync: (profileId: string, fullSync: boolean) => Promise<void>;
+  cancelContentSync: (profileId: string) => Promise<void>;
+  getSyncProgress: (profileId: string) => Promise<void>;
+  getSyncSettings: (profileId: string) => Promise<void>;
+  updateSyncSettings: (profileId: string, settings: SyncSettings) => Promise<void>;
+  clearContentCache: (profileId: string) => Promise<void>;
+  getContentCacheStats: (profileId: string) => Promise<void>;
+
   // Clear actions
   clearChannels: () => void;
   clearMovies: () => void;
@@ -190,6 +232,13 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   filterError: null,
   searchError: null,
 
+  // Sync state
+  syncProgress: null,
+  syncSettings: null,
+  cacheStats: null,
+  isSyncing: false,
+  syncError: null,
+
   // Channel actions
   fetchChannelCategories: async (profileId: string) => {
     set({ isLoadingChannelCategories: true, channelsError: null });
@@ -208,9 +257,12 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchChannels: async (profileId: string, categoryId?: string) => {
     set({ isLoadingChannels: true, channelsError: null });
     try {
-      const channels = await invoke<XtreamChannel[]>('get_xtream_channels', {
+      // Try to get from cache first
+      const channels = await invoke<XtreamChannel[]>('get_cached_xtream_channels', {
         profileId,
-        categoryId: categoryId || null
+        categoryId: categoryId || null,
+        limit: null,
+        offset: null
       });
       set({
         channels,
@@ -220,13 +272,29 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         currentPage: 1
       });
     } catch (error) {
-      set({
-        channelsError: error as string,
-        isLoadingChannels: false,
-        channels: [],
-        totalItems: 0,
-        hasNextPage: false
-      });
+      // If cache fails, fall back to direct API call
+      console.warn('Cache fetch failed, falling back to API:', error);
+      try {
+        const channels = await invoke<XtreamChannel[]>('get_xtream_channels', {
+          profileId,
+          categoryId: categoryId || null
+        });
+        set({
+          channels,
+          isLoadingChannels: false,
+          totalItems: channels.length,
+          hasNextPage: false,
+          currentPage: 1
+        });
+      } catch (apiError) {
+        set({
+          channelsError: apiError as string,
+          isLoadingChannels: false,
+          channels: [],
+          totalItems: 0,
+          hasNextPage: false
+        });
+      }
     }
   },
 
@@ -248,9 +316,15 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchMovies: async (profileId: string, categoryId?: string) => {
     set({ isLoadingMovies: true, moviesError: null });
     try {
-      const movies = await invoke<XtreamMoviesListing[]>('get_xtream_movies', {
+      // Try to get from cache first
+      const movies = await invoke<XtreamMoviesListing[]>('get_cached_xtream_movies', {
         profileId,
-        categoryId: categoryId || null
+        categoryId: categoryId || null,
+        genre: null,
+        year: null,
+        minRating: null,
+        limit: null,
+        offset: null
       });
       set({
         movies,
@@ -260,13 +334,29 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         currentPage: 1
       });
     } catch (error) {
-      set({
-        moviesError: error as string,
-        isLoadingMovies: false,
-        movies: [],
-        totalItems: 0,
-        hasNextPage: false
-      });
+      // If cache fails, fall back to direct API call
+      console.warn('Cache fetch failed, falling back to API:', error);
+      try {
+        const movies = await invoke<XtreamMoviesListing[]>('get_xtream_movies', {
+          profileId,
+          categoryId: categoryId || null
+        });
+        set({
+          movies,
+          isLoadingMovies: false,
+          totalItems: movies.length,
+          hasNextPage: false,
+          currentPage: 1
+        });
+      } catch (apiError) {
+        set({
+          moviesError: apiError as string,
+          isLoadingMovies: false,
+          movies: [],
+          totalItems: 0,
+          hasNextPage: false
+        });
+      }
     }
   },
 
@@ -300,9 +390,15 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchSeries: async (profileId: string, categoryId?: string) => {
     set({ isLoadingSeries: true, seriesError: null });
     try {
-      const series = await invoke<XtreamShowListing[]>('get_xtream_series', {
+      // Try to get from cache first
+      const series = await invoke<XtreamShowListing[]>('get_cached_xtream_series', {
         profileId,
-        categoryId: categoryId || null
+        categoryId: categoryId || null,
+        genre: null,
+        year: null,
+        minRating: null,
+        limit: null,
+        offset: null
       });
       set({
         series,
@@ -312,13 +408,29 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         currentPage: 1
       });
     } catch (error) {
-      set({
-        seriesError: error as string,
-        isLoadingSeries: false,
-        series: [],
-        totalItems: 0,
-        hasNextPage: false
-      });
+      // If cache fails, fall back to direct API call
+      console.warn('Cache fetch failed, falling back to API:', error);
+      try {
+        const series = await invoke<XtreamShowListing[]>('get_xtream_series', {
+          profileId,
+          categoryId: categoryId || null
+        });
+        set({
+          series,
+          isLoadingSeries: false,
+          totalItems: series.length,
+          hasNextPage: false,
+          currentPage: 1
+        });
+      } catch (apiError) {
+        set({
+          seriesError: apiError as string,
+          isLoadingSeries: false,
+          series: [],
+          totalItems: 0,
+          hasNextPage: false
+        });
+      }
     }
   },
 
@@ -514,13 +626,13 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchChannels: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      const state = get();
-      const channelsToSearch = state.channels.length > 0 ? state.channels :
-        await invoke<XtreamChannel[]>('get_xtream_channels', { profileId, categoryId: null });
-
-      const searchResults = await invoke<XtreamChannel[]>('search_xtream_channels', {
-        channels: channelsToSearch,
-        searchQuery
+      // Use cached search with fuzzy matching
+      const searchResults = await invoke<XtreamChannel[]>('search_cached_xtream_channels', {
+        profileId,
+        query: searchQuery,
+        categoryId: null,
+        limit: null,
+        offset: null
       });
 
       set({
@@ -530,11 +642,31 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      set({
-        searchError: error as string,
-        isSearching: false,
-        filteredChannels: []
-      });
+      // Fall back to client-side search if cache search fails
+      console.warn('Cached search failed, falling back to client-side:', error);
+      try {
+        const state = get();
+        const channelsToSearch = state.channels.length > 0 ? state.channels :
+          await invoke<XtreamChannel[]>('get_xtream_channels', { profileId, categoryId: null });
+
+        const searchResults = await invoke<XtreamChannel[]>('search_xtream_channels', {
+          channels: channelsToSearch,
+          searchQuery
+        });
+
+        set({
+          filteredChannels: searchResults,
+          isSearching: false,
+          totalItems: searchResults.length,
+          hasNextPage: false
+        });
+      } catch (fallbackError) {
+        set({
+          searchError: fallbackError as string,
+          isSearching: false,
+          filteredChannels: []
+        });
+      }
     }
   },
 
@@ -572,13 +704,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchMovies: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      const state = get();
-      const moviesToSearch = state.movies.length > 0 ? state.movies :
-        await invoke<XtreamMoviesListing[]>('get_xtream_movies', { profileId, categoryId: null });
-
-      const searchResults = await invoke<XtreamMoviesListing[]>('search_xtream_movies', {
-        movies: moviesToSearch,
-        searchQuery
+      // Use cached search with fuzzy matching
+      const searchResults = await invoke<XtreamMoviesListing[]>('search_cached_xtream_movies', {
+        profileId,
+        query: searchQuery,
+        categoryId: null,
+        genre: null,
+        year: null,
+        minRating: null,
+        limit: null,
+        offset: null
       });
 
       set({
@@ -588,11 +723,31 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      set({
-        searchError: error as string,
-        isSearching: false,
-        filteredMovies: []
-      });
+      // Fall back to client-side search if cache search fails
+      console.warn('Cached search failed, falling back to client-side:', error);
+      try {
+        const state = get();
+        const moviesToSearch = state.movies.length > 0 ? state.movies :
+          await invoke<XtreamMoviesListing[]>('get_xtream_movies', { profileId, categoryId: null });
+
+        const searchResults = await invoke<XtreamMoviesListing[]>('search_xtream_movies', {
+          movies: moviesToSearch,
+          searchQuery
+        });
+
+        set({
+          filteredMovies: searchResults,
+          isSearching: false,
+          totalItems: searchResults.length,
+          hasNextPage: false
+        });
+      } catch (fallbackError) {
+        set({
+          searchError: fallbackError as string,
+          isSearching: false,
+          filteredMovies: []
+        });
+      }
     }
   },
 
@@ -630,13 +785,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchSeries: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      const state = get();
-      const seriesToSearch = state.series.length > 0 ? state.series :
-        await invoke<XtreamShowListing[]>('get_xtream_series', { profileId, categoryId: null });
-
-      const searchResults = await invoke<XtreamShowListing[]>('search_xtream_series', {
-        series: seriesToSearch,
-        searchQuery
+      // Use cached search with fuzzy matching
+      const searchResults = await invoke<XtreamShowListing[]>('search_cached_xtream_series', {
+        profileId,
+        query: searchQuery,
+        categoryId: null,
+        genre: null,
+        year: null,
+        minRating: null,
+        limit: null,
+        offset: null
       });
 
       set({
@@ -646,11 +804,31 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      set({
-        searchError: error as string,
-        isSearching: false,
-        filteredSeries: []
-      });
+      // Fall back to client-side search if cache search fails
+      console.warn('Cached search failed, falling back to client-side:', error);
+      try {
+        const state = get();
+        const seriesToSearch = state.series.length > 0 ? state.series :
+          await invoke<XtreamShowListing[]>('get_xtream_series', { profileId, categoryId: null });
+
+        const searchResults = await invoke<XtreamShowListing[]>('search_xtream_series', {
+          series: seriesToSearch,
+          searchQuery
+        });
+
+        set({
+          filteredSeries: searchResults,
+          isSearching: false,
+          totalItems: searchResults.length,
+          hasNextPage: false
+        });
+      } catch (fallbackError) {
+        set({
+          searchError: fallbackError as string,
+          isSearching: false,
+          filteredSeries: []
+        });
+      }
     }
   },
 
@@ -1058,6 +1236,117 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
     );
   },
 
+  // Sync actions
+  startContentSync: async (profileId: string, fullSync: boolean) => {
+    set({ isSyncing: true, syncError: null });
+    try {
+      // Note: cache_state and xtream_state are managed by Tauri's state system
+      await invoke('start_content_sync', {
+        profileId,
+        fullSync
+      });
+      set({ isSyncing: true });
+      // Start polling for progress
+      const pollProgress = async () => {
+        try {
+          await get().getSyncProgress(profileId);
+          const { syncProgress } = get();
+          if (syncProgress && (syncProgress.status === 'completed' || syncProgress.status === 'failed' || syncProgress.status === 'cancelled')) {
+            set({ isSyncing: false });
+            // Refresh content after sync completes
+            if (syncProgress.status === 'completed') {
+              await Promise.all([
+                get().fetchChannels(profileId),
+                get().fetchMovies(profileId),
+                get().fetchSeries(profileId)
+              ]);
+            }
+          } else {
+            // Continue polling
+            setTimeout(pollProgress, 1000);
+          }
+        } catch (error) {
+          console.error('Failed to poll sync progress:', error);
+          set({ isSyncing: false });
+        }
+      };
+      setTimeout(pollProgress, 1000);
+    } catch (error) {
+      set({
+        syncError: error as string,
+        isSyncing: false
+      });
+      throw error;
+    }
+  },
+
+  cancelContentSync: async (profileId: string) => {
+    try {
+      await invoke('cancel_content_sync', { profileId });
+      set({ isSyncing: false });
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
+  getSyncProgress: async (profileId: string) => {
+    try {
+      const progress = await invoke<SyncProgress>('get_sync_progress', { profileId });
+      set({ syncProgress: progress });
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
+  getSyncSettings: async (profileId: string) => {
+    try {
+      const settings = await invoke<SyncSettings>('get_sync_settings', { profileId });
+      set({ syncSettings: settings });
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
+  updateSyncSettings: async (profileId: string, settings: SyncSettings) => {
+    try {
+      await invoke('update_sync_settings', { profileId, settings });
+      set({ syncSettings: settings });
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
+  clearContentCache: async (profileId: string) => {
+    try {
+      await invoke('clear_content_cache', { profileId });
+      // Clear local state
+      get().clearAll();
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
+  getContentCacheStats: async (profileId: string) => {
+    try {
+      const stats = await invoke<[number, number, number]>('get_content_cache_stats', { profileId });
+      set({
+        cacheStats: {
+          channels_count: stats[0],
+          movies_count: stats[1],
+          series_count: stats[2]
+        }
+      });
+    } catch (error) {
+      set({ syncError: error as string });
+      throw error;
+    }
+  },
+
   // Clear actions
   clearChannels: () => {
     set({
@@ -1171,6 +1460,11 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
       favoritesError: null,
       filterError: null,
       searchError: null,
+      syncProgress: null,
+      syncSettings: null,
+      cacheStats: null,
+      isSyncing: false,
+      syncError: null,
     });
   },
 }));
