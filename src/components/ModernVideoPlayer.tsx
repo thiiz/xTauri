@@ -140,6 +140,50 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
         }
 
         if (activeContent.type === 'channel') {
+          const channelData = activeContent.data as Channel;
+
+          console.log('Channel selected:', {
+            name: channelData.name,
+            extra_info: channelData.extra_info,
+            url: channelData.url,
+            activeProfile: activeProfile?.id
+          });
+
+          // Check if this is an Xtream channel (has stream_id in extra_info)
+          // Handle multiple formats: "stream_id:123", "Stream ID: 123", etc.
+          if (channelData.extra_info) {
+            const streamIdMatch = channelData.extra_info.match(/stream[_\s]id[:\s]+(\d+)/i);
+
+            if (streamIdMatch) {
+              const streamId = streamIdMatch[1];
+
+              console.log('Generating Xtream channel URL:', {
+                streamId,
+                profileId: activeProfile.id
+              });
+
+              setIsGeneratingUrl(true);
+              try {
+                const url = await invoke<string>('generate_xtream_stream_url', {
+                  profileId: activeProfile.id,
+                  contentType: 'Channel',
+                  contentId: streamId,
+                  extension: 'm3u8'
+                });
+                console.log('Generated URL:', url);
+                setStreamUrl(url);
+              } catch (error) {
+                console.error('Failed to generate Xtream channel URL:', error);
+                setStreamUrl(null);
+              } finally {
+                setIsGeneratingUrl(false);
+              }
+              return;
+            }
+          }
+
+          // Regular channel with direct URL
+          console.log('Using direct channel URL:', channelData.url);
           setStreamUrl(activeContent.url || null);
           return;
         }

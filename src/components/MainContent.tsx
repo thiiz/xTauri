@@ -122,7 +122,7 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
         group_title: 'Xtream Live TV', // Default group for Xtream channels
         tvg_id: xtreamChannel.epg_channel_id,
         resolution: 'HD',
-        extra_info: `Stream ID: ${xtreamChannel.stream_id}`
+        extra_info: `stream_id:${xtreamChannel.stream_id}` // Store stream_id for URL generation
       }));
 
       combined.push(...convertedXtreamChannels);
