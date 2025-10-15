@@ -15,7 +15,7 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showEPG, setShowEPG] = useState(false);
 
-  const { selectedChannel, favorites, setSelectedChannel, toggleFavorite } = useChannelStore();
+  const { selectedChannel, setSelectedChannel } = useChannelStore();
   const { focusedIndex, selectedGroup, clearGroupFilter, setFocusedIndex } = useUIStore();
 
   const {
@@ -28,10 +28,15 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
     isSyncing,
     currentAndNextEPG,
     isLoadingEPG,
+    favorites: xtreamFavorites,
     fetchChannelCategories,
     fetchChannels,
     fetchCurrentAndNextEPG,
-    setSelectedCategory
+    setSelectedCategory,
+    addToFavorites,
+    removeFromFavoritesByContent,
+    fetchFavorites: fetchXtreamFavorites,
+    isFavorite: isXtreamFavorite,
   } = useXtreamContentStore();
 
   const { activeProfile } = useProfileStore();
@@ -50,9 +55,42 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
     }
   }, [useXtreamData, activeProfile, fetchChannelCategories, fetchChannels]);
 
+  // Always fetch favorites if there's an active profile (needed for converted channels too)
+  useEffect(() => {
+    if (activeProfile) {
+      fetchXtreamFavorites(activeProfile.id);
+    }
+  }, [activeProfile, fetchXtreamFavorites]);
+
   const isFavorite = useCallback((channel: Channel | XtreamChannel) => {
-    return favorites.some((fav) => fav.name === channel.name);
-  }, [favorites]);
+    if (!activeProfile) return false;
+
+    // Check if it's an Xtream channel (either native or converted)
+    const isNativeXtreamChannel = 'stream_id' in channel;
+    const isConvertedXtreamChannel = !isNativeXtreamChannel &&
+      'extra_info' in channel &&
+      channel.extra_info?.startsWith('stream_id:');
+
+    if (!isNativeXtreamChannel && !isConvertedXtreamChannel) return false;
+
+    // Extract stream_id
+    let contentId: string;
+    if (isNativeXtreamChannel) {
+      contentId = (channel as XtreamChannel).stream_id.toString();
+    } else {
+      contentId = (channel as Channel).extra_info.replace('stream_id:', '');
+    }
+
+    const result = isXtreamFavorite(activeProfile.id, 'channel', contentId);
+    console.log('isFavorite check:', {
+      channelName: channel.name,
+      contentId,
+      profileId: activeProfile.id,
+      result,
+      totalFavorites: xtreamFavorites.length
+    });
+    return result;
+  }, [activeProfile, isXtreamFavorite, xtreamFavorites]);
 
   const handleCategoryFilter = async (categoryId: string | null) => {
     if (!useXtreamData || !activeProfile) return;
@@ -78,19 +116,74 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
     };
   };
 
-  const handleToggleFavorite = async (channel: Channel | XtreamChannel) => {
-    const channelToToggle: Channel = useXtreamData && 'stream_id' in channel ? {
-      name: channel.name,
-      logo: channel.stream_icon,
-      url: channel.url || '',
-      group_title: '',
-      tvg_id: channel.epg_channel_id,
-      resolution: 'HD',
-      extra_info: ''
-    } : channel as Channel;
+  const handleToggleFavorite = useCallback(async (channel: Channel | XtreamChannel) => {
+    console.log('handleToggleFavorite called', { useXtreamData, activeProfile: activeProfile?.id, channel });
 
-    await toggleFavorite(channelToToggle);
-  };
+    if (!activeProfile) {
+      console.warn('Cannot toggle favorite: no active profile');
+      return;
+    }
+
+    // Check if it's an Xtream channel (either native XtreamChannel or converted Channel with stream_id)
+    const isNativeXtreamChannel = 'stream_id' in channel;
+    const isConvertedXtreamChannel = !isNativeXtreamChannel &&
+      'extra_info' in channel &&
+      channel.extra_info?.startsWith('stream_id:');
+
+    if (!isNativeXtreamChannel && !isConvertedXtreamChannel) {
+      console.warn('Cannot toggle favorite: not an Xtream channel');
+      return;
+    }
+
+    // Extract stream_id
+    let contentId: string;
+    let channelData: any;
+
+    if (isNativeXtreamChannel) {
+      const xtreamChannel = channel as XtreamChannel;
+      contentId = xtreamChannel.stream_id.toString();
+      channelData = {
+        id: contentId,
+        name: xtreamChannel.name,
+        stream_icon: xtreamChannel.stream_icon,
+        category_id: xtreamChannel.category_id,
+        epg_channel_id: xtreamChannel.epg_channel_id,
+      };
+    } else {
+      // Converted channel - extract stream_id from extra_info
+      const regularChannel = channel as Channel;
+      contentId = regularChannel.extra_info.replace('stream_id:', '');
+      channelData = {
+        id: contentId,
+        name: regularChannel.name,
+        stream_icon: regularChannel.logo,
+        category_id: regularChannel.group_title,
+        epg_channel_id: regularChannel.tvg_id,
+      };
+    }
+
+    const currentlyFavorite = isFavorite(channel);
+    console.log('Toggling favorite:', { contentId, currentlyFavorite, isNativeXtreamChannel, isConvertedXtreamChannel });
+
+    try {
+      if (currentlyFavorite) {
+        console.log('Removing from favorites...');
+        await removeFromFavoritesByContent(activeProfile.id, 'channel', contentId);
+        console.log('Removed from favorites successfully');
+      } else {
+        console.log('Adding to favorites...');
+        await addToFavorites(
+          activeProfile.id,
+          'channel',
+          contentId,
+          channelData
+        );
+        console.log('Added to favorites successfully');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  }, [activeProfile, isFavorite, addToFavorites, removeFromFavoritesByContent]);
 
   const handleStartSync = useCallback(async (fullSync: boolean) => {
     if (!activeProfile) return;
@@ -214,7 +307,7 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
         </div>
       </div>
     );
-  }, [displayChannels, selectedChannel, focusedIndex, showEPG, useXtreamData, channelCategories, isFavorite]);
+  }, [displayChannels, selectedChannel, focusedIndex, showEPG, useXtreamData, channelCategories, isFavorite, handleToggleFavorite]);
 
   return (
     <div className="virtual-channel-list-container">

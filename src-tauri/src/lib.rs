@@ -2,7 +2,6 @@ mod channels;
 pub mod content_cache;
 pub mod database;
 mod error;
-mod favorites;
 mod filters;
 pub mod fuzzy_search;
 mod groups;
@@ -38,7 +37,6 @@ use xtream::{ContentCache, CredentialManager, ProfileManager, XtreamState};
 
 // Import all the command functions from their respective modules
 use channels::*;
-use favorites::*;
 use filters::*;
 use groups::*;
 use history::*;
@@ -171,9 +169,6 @@ pub fn run() {
             // Channel commands
             get_channels,
             get_groups,
-            add_favorite,
-            remove_favorite,
-            get_favorites,
             get_history,
             search_channels,
             invalidate_channel_cache,
@@ -184,9 +179,6 @@ pub fn run() {
             get_channels_async,
             get_groups_async,
             search_channels_async,
-            add_favorite_async,
-            remove_favorite_async,
-            get_favorites_async,
             get_history_async,
             // Settings commands
             get_cache_duration,

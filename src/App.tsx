@@ -25,13 +25,10 @@ function App() {
   // Zustand store hooks
   const {
     channels,
-    favorites,
     groups,
     history,
-    selectedChannel,
     setChannels,
     setSelectedChannel,
-    toggleFavorite,
   } = useChannelStore();
 
   const {
@@ -180,7 +177,7 @@ function App() {
       case "channels":
         return filteredChannels;
       case "favorites":
-        return favorites;
+        return []; // Favorites now handled by Xtream system in FavoritesView
       case "groups":
         return displayedGroups;
       case "history":
@@ -188,7 +185,7 @@ function App() {
       default:
         return [];
     }
-  }, [activeTab, filteredChannels, favorites, displayedGroups, history]);
+  }, [activeTab, filteredChannels, displayedGroups, history]);
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleClearGroupSearch = useCallback(() => {
@@ -320,7 +317,7 @@ function App() {
     setSelectedChannel,
     setActiveTab,
     handleSelectGroup,
-    handleToggleFavorite: toggleFavorite,
+    handleToggleFavorite: () => { }, // Favorites now handled by Xtream system
     clearSearch,
     clearGroupSearch: handleClearGroupSearch,
     clearAllFilters: handleClearAllFilters,

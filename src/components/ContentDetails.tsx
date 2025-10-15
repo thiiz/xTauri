@@ -12,8 +12,6 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
   const {
     selectedChannel,
     channels,
-    favorites,
-    toggleFavorite,
   } = useChannelStore();
   const { setSelectedGroup, setActiveTab, setGroupDisplayMode } = useUIStore();
 
@@ -28,8 +26,6 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
   }
 
   if (selectedChannel && !selectedXtreamContent) {
-    const isFavorite = favorites.some((fav) => fav.name === selectedChannel.name);
-
     const handleFilterByGroup = () => {
       if (selectedChannel?.group_title) {
         setGroupDisplayMode(GroupDisplayMode.AllGroups);
@@ -71,16 +67,6 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
           </div>
 
           <div className="separator" role="separator" aria-hidden="true"></div>
-
-          <div className="actions-section">
-            <button
-              className="secondary-button"
-              onClick={() => toggleFavorite(selectedChannel)}
-              aria-label={isFavorite ? `Remove ${selectedChannel.name} from favorites` : `Add ${selectedChannel.name} to favorites`}
-            >
-              {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            </button>
-          </div>
 
           <div className="details-grid">
             <div className="detail-item">

@@ -15,20 +15,6 @@ pub fn initialize_database() -> Result<Connection> {
     let conn = Connection::open(&db_path)?;
 
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS favorites (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            logo TEXT NOT NULL,
-            url TEXT NOT NULL,
-            group_title TEXT NOT NULL,
-            tvg_id TEXT NOT NULL,
-            resolution TEXT NOT NULL,
-            extra_info TEXT NOT NULL
-        )",
-        [],
-    )?;
-
-    conn.execute(
         "CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
@@ -192,25 +178,29 @@ pub fn initialize_database() -> Result<Connection> {
         "CREATE INDEX IF NOT EXISTS idx_xtream_cache_profile_type 
          ON xtream_content_cache(profile_id, content_type)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_xtream_cache_expires 
          ON xtream_content_cache(expires_at)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_xtream_profiles_active 
          ON xtream_profiles(is_active) WHERE is_active = TRUE",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_xtream_profiles_last_used 
          ON xtream_profiles(last_used DESC)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS xtream_favorites (
@@ -231,13 +221,15 @@ pub fn initialize_database() -> Result<Connection> {
         "CREATE INDEX IF NOT EXISTS idx_xtream_favorites_profile_type 
          ON xtream_favorites(profile_id, content_type)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_xtream_favorites_content 
          ON xtream_favorites(profile_id, content_type, content_id)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS xtream_history (
@@ -259,24 +251,22 @@ pub fn initialize_database() -> Result<Connection> {
         "CREATE INDEX IF NOT EXISTS idx_xtream_history_profile_watched 
          ON xtream_history(profile_id, watched_at DESC)",
         [],
-    ).ok();
+    )
+    .ok();
 
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_xtream_history_content 
          ON xtream_history(profile_id, content_type, content_id)",
         [],
-    ).ok();
+    )
+    .ok();
 
     // Add position and duration columns to existing xtream_history table if they don't exist
-    conn.execute(
-        "ALTER TABLE xtream_history ADD COLUMN position REAL",
-        [],
-    ).ok(); // Use ok() to ignore error if column already exists
+    conn.execute("ALTER TABLE xtream_history ADD COLUMN position REAL", [])
+        .ok(); // Use ok() to ignore error if column already exists
 
-    conn.execute(
-        "ALTER TABLE xtream_history ADD COLUMN duration REAL",
-        [],
-    ).ok(); // Use ok() to ignore error if column already exists
+    conn.execute("ALTER TABLE xtream_history ADD COLUMN duration REAL", [])
+        .ok(); // Use ok() to ignore error if column already exists
 
     // Search history table
     conn.execute(
@@ -296,7 +286,8 @@ pub fn initialize_database() -> Result<Connection> {
         "CREATE INDEX IF NOT EXISTS idx_search_history_profile 
          ON xtream_search_history(profile_id, created_at DESC)",
         [],
-    ).ok();
+    )
+    .ok();
 
     // Saved filters table
     conn.execute(
@@ -318,7 +309,8 @@ pub fn initialize_database() -> Result<Connection> {
         "CREATE INDEX IF NOT EXISTS idx_saved_filters_profile 
          ON xtream_saved_filters(profile_id, content_type)",
         [],
-    ).ok();
+    )
+    .ok();
 
     let list_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM channel_lists", [], |row| row.get(0))?;
@@ -543,22 +535,6 @@ mod tests {
 
     fn create_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
-
-        // Create the basic table structure that initialize_database would create
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS favorites (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE,
-                logo TEXT NOT NULL,
-                url TEXT NOT NULL,
-                group_title TEXT NOT NULL,
-                tvg_id TEXT NOT NULL,
-                resolution TEXT NOT NULL,
-                extra_info TEXT NOT NULL
-            )",
-            [],
-        )
-        .unwrap();
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS history (

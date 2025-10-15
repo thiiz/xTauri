@@ -21,7 +21,6 @@ interface MainContentProps {
 export default function MainContent({ filteredChannels, onChannelSelect }: MainContentProps) {
   // Get state from stores
   const {
-    favorites,
     groups,
     history,
   } = useChannelStore();
@@ -138,7 +137,7 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
           return `${totalChannels} channels available`;
         }
       case "favorites":
-        return `${favorites.length} favorite channels`;
+        return "Favorites"; // Handled by FavoritesView component
       case "groups":
         return `${groups.length} groups available`;
       case "history":
