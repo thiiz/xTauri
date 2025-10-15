@@ -25,6 +25,7 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
     isLoadingChannels,
     isLoadingChannelCategories,
     channelsError,
+    isSyncing,
     currentAndNextEPG,
     isLoadingEPG,
     fetchChannelCategories,
@@ -90,6 +91,16 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
 
     await toggleFavorite(channelToToggle);
   };
+
+  const handleStartSync = useCallback(async (fullSync: boolean) => {
+    if (!activeProfile) return;
+    const { startContentSync } = useXtreamContentStore.getState();
+    try {
+      await startContentSync(activeProfile.id, fullSync);
+    } catch (error) {
+      console.error('Failed to start sync:', error);
+    }
+  }, [activeProfile]);
 
   const rowRenderer = useCallback((index: number) => {
     const channel = displayChannels[index];
@@ -281,9 +292,25 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
         </div>
       )}
 
-      {useXtreamData && channelsError && (
+      {channelsError && !isSyncing && (
         <div className="error-indicator">
           <span>Error loading channels: {channelsError}</span>
+          {channelsError.toLowerCase().includes('cache_empty') && activeProfile && (
+            <button
+              className="btn btn-primary"
+              onClick={() => handleStartSync(false)}
+              style={{ marginLeft: '1rem' }}
+              title="Download channels to cache"
+            >
+              Download Channels
+            </button>
+          )}
+        </div>
+      )}
+
+      {isSyncing && (
+        <div className="sync-indicator" role="status" aria-live="polite">
+          <span>Syncing content...</span>
         </div>
       )}
 

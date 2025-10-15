@@ -36,6 +36,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     isLoadingMovies,
     isLoadingMovieCategories,
     moviesError,
+    isSyncing,
     fetchMovieCategories,
     fetchMovies,
     fetchMovieDetails,
@@ -138,6 +139,16 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
       }
     }
   }, [activeProfile, isFavorite, addToFavorites, removeFromFavoritesByContent]);
+
+  const handleStartSync = useCallback(async (fullSync: boolean) => {
+    if (!activeProfile) return;
+    const { startContentSync } = useXtreamContentStore.getState();
+    try {
+      await startContentSync(activeProfile.id, fullSync);
+    } catch (error) {
+      console.error('Failed to start sync:', error);
+    }
+  }, [activeProfile]);
 
   // Formatting functions are now imported from utils/formatters
 
@@ -274,9 +285,25 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
         </div>
       )}
 
-      {moviesError && (
+      {moviesError && !isSyncing && (
         <div className="error-indicator" role="alert" aria-live="assertive">
           <span>Error loading movies: {moviesError}</span>
+          {moviesError.toLowerCase().includes('cache_empty') && activeProfile && (
+            <button
+              className="btn btn-primary"
+              onClick={() => handleStartSync(false)}
+              style={{ marginLeft: '1rem' }}
+              title="Download movies to cache"
+            >
+              Download Movies
+            </button>
+          )}
+        </div>
+      )}
+
+      {isSyncing && (
+        <div className="sync-indicator" role="status" aria-live="polite">
+          <span>Syncing content...</span>
         </div>
       )}
 

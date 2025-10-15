@@ -42,6 +42,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
     isLoadingSeries,
     isLoadingSeriesCategories,
     seriesError,
+    isSyncing,
     fetchSeriesCategories,
     fetchSeries,
     fetchSeriesDetails,
@@ -151,6 +152,16 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
       }
     }
   }, [activeProfile, isFavorite, addToFavorites, removeFromFavoritesByContent]);
+
+  const handleStartSync = useCallback(async (fullSync: boolean) => {
+    if (!activeProfile) return;
+    const { startContentSync } = useXtreamContentStore.getState();
+    try {
+      await startContentSync(activeProfile.id, fullSync);
+    } catch (error) {
+      console.error('Failed to start sync:', error);
+    }
+  }, [activeProfile]);
 
   // Formatting functions are now imported from utils/formatters
 
@@ -427,9 +438,25 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
         </div>
       )}
 
-      {seriesError && (
+      {seriesError && !isSyncing && (
         <div className="error-indicator">
           <span>Error loading series: {seriesError}</span>
+          {seriesError.toLowerCase().includes('cache_empty') && activeProfile && (
+            <button
+              className="btn btn-primary"
+              onClick={() => handleStartSync(false)}
+              style={{ marginLeft: '1rem' }}
+              title="Download series to cache"
+            >
+              Download Series
+            </button>
+          )}
+        </div>
+      )}
+
+      {isSyncing && (
+        <div className="sync-indicator" role="status" aria-live="polite">
+          <span>Syncing content...</span>
         </div>
       )}
 
