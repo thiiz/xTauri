@@ -1506,3 +1506,4 @@ pub async fn clear_xtream_saved_filters(
     SavedFiltersDb::clear_filters(&conn_guard, &profile_id)
         .map_err(|e| e.to_string())
 }
+

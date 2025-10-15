@@ -249,7 +249,8 @@
 
 .play-button,
 .details-button,
-.view-button {
+.view-button,
+.favorite-button {
   width: 44px;
   height: 44px;
   border: none;
@@ -258,7 +259,7 @@
   font-size: 18px;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,6 +272,32 @@
   transform: scale(1.15);
   background: #6366f1;
   color: white;
+}
+
+.favorite-button {
+  color: #94a3b8;
+}
+
+.favorite-button:hover {
+  transform: scale(1.15);
+  background: rgba(255, 255, 255, 0.95);
+  color: #ef4444;
+}
+
+.favorite-button.active {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.favorite-button.active:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+
+.favorite-button svg,
+.favorite-button-hero svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Info Section */
@@ -880,7 +907,8 @@
   margin-bottom: 20px;
 }
 
-.movie-hero-actions {
+.movie-hero-actions,
+.series-hero-actions {
   display: flex;
   gap: 10px;
   margin-top: 20px;
@@ -906,6 +934,38 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
   background: #5558e3;
+}
+
+.favorite-button-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.favorite-button-hero:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.favorite-button-hero.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.favorite-button-hero.active:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* Responsive Design - Mobile First */
@@ -1006,7 +1066,8 @@
 .virtual-series-card:focus-visible,
 .play-button:focus-visible,
 .details-button:focus-visible,
-.view-button:focus-visible {
+.view-button:focus-visible,
+.favorite-button:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
 }

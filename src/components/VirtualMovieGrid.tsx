@@ -9,6 +9,13 @@ import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
 import { SkeletonMovieGrid } from "./SkeletonLoader";
 
+// Heart icon component
+const HeartIcon = ({ filled }: { filled: boolean }) => (
+  <svg className="w-5 h-5" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+
 interface VirtualMovieGridProps {
   onMovieSelect?: (movie: XtreamMoviesListing) => void;
   onMoviePlay?: (movie: XtreamMoviesListing) => void;
@@ -34,7 +41,11 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     fetchMovieDetails,
     searchMovies,
     setSelectedCategory,
-    clearSearch
+    clearSearch,
+    addToFavorites,
+    removeFromFavoritesByContent,
+    isFavorite,
+    fetchFavorites
   } = useXtreamContentStore();
 
   const { activeProfile } = useProfileStore();
@@ -49,7 +60,8 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
 
     fetchMovieCategories(activeProfile.id);
     fetchMovies(activeProfile.id);
-  }, [activeProfile, fetchMovieCategories, fetchMovies]);
+    fetchFavorites(activeProfile.id);
+  }, [activeProfile, fetchMovieCategories, fetchMovies, fetchFavorites]);
 
   const handleCategoryFilter = useCallback(async (categoryId: string | null) => {
     if (!activeProfile) return;
@@ -98,6 +110,47 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
     setShowDetails(true);
     handleMovieClick(movie);
   }, [handleMovieClick]);
+
+  const handleToggleFavorite = useCallback(async (movie: XtreamMoviesListing, e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('handleToggleFavorite called', { movie, activeProfile });
+
+    if (!activeProfile) {
+      console.warn('No active profile');
+      return;
+    }
+
+    const movieId = movie.stream_id.toString();
+    const isCurrentlyFavorite = isFavorite(activeProfile.id, 'movie', movieId);
+
+    console.log('Toggle favorite:', { movieId, isCurrentlyFavorite, profileId: activeProfile.id });
+
+    try {
+      if (isCurrentlyFavorite) {
+        console.log('Removing from favorites...');
+        await removeFromFavoritesByContent(activeProfile.id, 'movie', movieId);
+        console.log('Removed from favorites successfully');
+      } else {
+        console.log('Adding to favorites...', { profileId: activeProfile.id, movieId, movie });
+        await addToFavorites(activeProfile.id, 'movie', movieId, movie);
+        console.log('Added to favorites successfully');
+      }
+    } catch (error) {
+      const errorMessage = error as string;
+      console.error('Failed to toggle favorite:', error);
+
+      // If the error is "already in favorites", try to remove it instead
+      if (errorMessage.includes('already in favorites')) {
+        console.log('Item already in favorites, trying to remove...');
+        try {
+          await removeFromFavoritesByContent(activeProfile.id, 'movie', movieId);
+          console.log('Removed from favorites successfully');
+        } catch (removeError) {
+          console.error('Failed to remove favorite:', removeError);
+        }
+      }
+    }
+  }, [activeProfile, isFavorite, addToFavorites, removeFromFavoritesByContent]);
 
   // Formatting functions are now imported from utils/formatters
 
@@ -153,6 +206,14 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
                   title={`Show details for ${movie.name}`}
                 >
                   <span aria-hidden="true">ℹ</span>
+                </button>
+                <button
+                  className={`favorite-button ${activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? 'active' : ''}`}
+                  onClick={(e) => handleToggleFavorite(movie, e)}
+                  aria-label={activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? `Remove ${movie.name} from favorites` : `Add ${movie.name} to favorites`}
+                  title={activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <HeartIcon filled={activeProfile ? isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) : false} />
                 </button>
               </div>
             </div>
@@ -339,6 +400,13 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
                           <path d="M8 5v14l11-7z" />
                         </svg>
                         Play Movie
+                      </button>
+                      <button
+                        className={`favorite-button-hero ${activeProfile && isFavorite(activeProfile.id, 'movie', selectedMovie.stream_id.toString()) ? 'active' : ''}`}
+                        onClick={(e) => handleToggleFavorite(selectedMovie, e)}
+                      >
+                        <HeartIcon filled={activeProfile ? isFavorite(activeProfile.id, 'movie', selectedMovie.stream_id.toString()) : false} />
+                        {activeProfile && isFavorite(activeProfile.id, 'movie', selectedMovie.stream_id.toString()) ? 'Remove from Favorites' : 'Add to Favorites'}
                       </button>
                     </div>
                   </div>

@@ -1165,7 +1165,9 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
 
   addToFavorites: async (profileId: string, contentType: string, contentId: string, contentData: any) => {
     try {
-      await invoke('add_xtream_favorite', {
+      console.log('addToFavorites called:', { profileId, contentType, contentId, contentData });
+
+      const favoriteId = await invoke<string>('add_xtream_favorite', {
         request: {
           profile_id: profileId,
           content_type: contentType,
@@ -1173,9 +1175,26 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
           content_data: contentData
         }
       });
-      // Refresh favorites after adding
-      await get().fetchFavorites(profileId);
+
+      console.log('Favorite added with ID:', favoriteId);
+
+      // Add to local state immediately for instant UI update
+      const newFavorite: XtreamFavorite = {
+        id: favoriteId,
+        profile_id: profileId,
+        content_type: contentType,
+        content_id: contentId,
+        content_data: contentData,
+        created_at: new Date().toISOString()
+      };
+
+      set(state => ({
+        favorites: [newFavorite, ...state.favorites]
+      }));
+
+      console.log('Favorite added to local state');
     } catch (error) {
+      console.error('Error in addToFavorites:', error);
       set({ favoritesError: error as string });
       throw error;
     }
@@ -1196,11 +1215,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
 
   removeFromFavoritesByContent: async (profileId: string, contentType: string, contentId: string) => {
     try {
+      console.log('removeFromFavoritesByContent called:', { profileId, contentType, contentId });
+
       await invoke('remove_xtream_favorite_by_content', {
         profileId,
         contentType,
         contentId
       });
+
+      console.log('Favorite removed from backend');
+
       // Remove from local state
       set(state => ({
         favorites: state.favorites.filter(
@@ -1210,7 +1234,10 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
               item.content_id === contentId)
         )
       }));
+
+      console.log('Favorite removed from local state');
     } catch (error) {
+      console.error('Error in removeFromFavoritesByContent:', error);
       set({ favoritesError: error as string });
       throw error;
     }

@@ -7,6 +7,7 @@ import {
   useXtreamContentStore
 } from "../stores";
 import { type Channel } from "./ChannelList";
+import { FavoritesView } from "./FavoritesView";
 import GroupList from "./GroupList";
 import SearchBar from "./SearchBar";
 import VirtualChannelList from "./VirtualChannelList";
@@ -42,7 +43,8 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
     fetchChannels: fetchXtreamChannels,
     fetchChannelCategories,
     searchChannels,
-    clearSearch: clearXtreamSearch
+    clearSearch: clearXtreamSearch,
+    favorites: xtreamFavorites
   } = useXtreamContentStore();
 
   // Local state for channel category filter
@@ -221,11 +223,7 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
           </>
         );
       case "favorites":
-        return (
-          <div className="content-list">
-            <VirtualChannelList channels={favorites} onChannelSelect={onChannelSelect} />
-          </div>
-        );
+        return <FavoritesView />;
       case "groups":
         return (
           <div className="content-list">

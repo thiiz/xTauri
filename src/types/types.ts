@@ -896,3 +896,49 @@ export type AddFavoriteRequest = {
   /** Full content data */
   content_data: any;
 };
+
+/**
+ * Xtream favorite item
+ *
+ * This type represents a favorited content item (channel, movie, or series)
+ */
+export type XtreamFavorite = {
+  /** Unique identifier for the favorite */
+  id: string;
+  /** The profile ID this favorite belongs to */
+  profile_id: string;
+  /** The type of content (channel, movie, series) */
+  content_type: string;
+  /** The ID of the content item */
+  content_id: string;
+  /** The full content data as JSON */
+  content_data: any;
+  /** When the favorite was created */
+  created_at: string;
+};
+
+/**
+ * Xtream history item
+ *
+ * This type represents a watched content item with playback position
+ */
+export type XtreamHistory = {
+  /** Unique identifier for the history entry */
+  id: string;
+  /** The profile ID this history belongs to */
+  profile_id: string;
+  /** The type of content (channel, movie, series) */
+  content_type: string;
+  /** The ID of the content item */
+  content_id: string;
+  /** The full content data as JSON */
+  content_data: any;
+  /** Playback position in seconds */
+  position: number;
+  /** Total duration in seconds */
+  duration: number;
+  /** When the item was last watched */
+  last_watched: string;
+  /** When the history entry was created */
+  created_at: string;
+};

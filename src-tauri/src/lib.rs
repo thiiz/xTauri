@@ -308,14 +308,6 @@ pub fn run() {
             update_sync_settings,
             clear_content_cache,
             get_cache_stats,
-            // Xtream favorites commands
-            add_xtream_favorite,
-            remove_xtream_favorite,
-            remove_xtream_favorite_by_content,
-            get_xtream_favorites,
-            get_xtream_favorites_by_type,
-            is_xtream_favorite,
-            clear_xtream_favorites,
             // Xtream history commands
             add_xtream_history,
             update_xtream_history_position,
@@ -345,6 +337,14 @@ pub fn run() {
             update_xtream_saved_filter_last_used,
             delete_xtream_saved_filter,
             clear_xtream_saved_filters,
+            // Xtream favorites commands
+            add_xtream_favorite,
+            remove_xtream_favorite,
+            remove_xtream_favorite_by_content,
+            get_xtream_favorites,
+            get_xtream_favorites_by_type,
+            is_xtream_favorite,
+            clear_xtream_favorites,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

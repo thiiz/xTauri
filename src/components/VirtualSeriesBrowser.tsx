@@ -10,6 +10,13 @@ import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
 import { SkeletonEpisodeList, SkeletonMovieGrid } from "./SkeletonLoader";
 
+// Heart icon component
+const HeartIcon = ({ filled }: { filled: boolean }) => (
+  <svg className="w-5 h-5" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+
 interface VirtualSeriesBrowserProps {
   onEpisodePlay?: (episode: XtreamEpisode, series: XtreamShow) => void;
   onContentSelect?: () => void;
@@ -40,7 +47,11 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
     fetchSeries,
     fetchSeriesDetails,
     searchSeries,
-    setSelectedCategory
+    setSelectedCategory,
+    addToFavorites,
+    removeFromFavoritesByContent,
+    isFavorite,
+    fetchFavorites
   } = useXtreamContentStore();
 
   const { activeProfile } = useProfileStore();
@@ -55,7 +66,8 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
 
     fetchSeriesCategories(activeProfile.id);
     fetchSeries(activeProfile.id);
-  }, [activeProfile, fetchSeriesCategories, fetchSeries]);
+    fetchFavorites(activeProfile.id);
+  }, [activeProfile, fetchSeriesCategories, fetchSeries, fetchFavorites]);
 
   useEffect(() => {
     if (normalizedSeriesDetails?.seasons && normalizedSeriesDetails.seasons.length > 0) {
@@ -113,6 +125,34 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
     setSelectedSeason(null);
   }, []);
 
+  const handleToggleFavorite = useCallback(async (seriesItem: XtreamShowListing, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeProfile) return;
+
+    const seriesId = seriesItem.series_id.toString();
+    const isCurrentlyFavorite = isFavorite(activeProfile.id, 'series', seriesId);
+
+    try {
+      if (isCurrentlyFavorite) {
+        await removeFromFavoritesByContent(activeProfile.id, 'series', seriesId);
+      } else {
+        await addToFavorites(activeProfile.id, 'series', seriesId, seriesItem);
+      }
+    } catch (error) {
+      const errorMessage = error as string;
+      console.error('Failed to toggle favorite:', error);
+
+      // If the error is "already in favorites", try to remove it instead
+      if (errorMessage.includes('already in favorites')) {
+        try {
+          await removeFromFavoritesByContent(activeProfile.id, 'series', seriesId);
+        } catch (removeError) {
+          console.error('Failed to remove favorite:', removeError);
+        }
+      }
+    }
+  }, [activeProfile, isFavorite, addToFavorites, removeFromFavoritesByContent]);
+
   // Formatting functions are now imported from utils/formatters
 
   const seasonEpisodes = useMemo(() => {
@@ -161,6 +201,14 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
                   title={`View ${seriesItem.name} details`}
                 >
                   <span aria-hidden="true">👁</span>
+                </button>
+                <button
+                  className={`favorite-button ${activeProfile && isFavorite(activeProfile.id, 'series', seriesItem.series_id.toString()) ? 'active' : ''}`}
+                  onClick={(e) => handleToggleFavorite(seriesItem, e)}
+                  aria-label={activeProfile && isFavorite(activeProfile.id, 'series', seriesItem.series_id.toString()) ? `Remove ${seriesItem.name} from favorites` : `Add ${seriesItem.name} to favorites`}
+                  title={activeProfile && isFavorite(activeProfile.id, 'series', seriesItem.series_id.toString()) ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <HeartIcon filled={activeProfile ? isFavorite(activeProfile.id, 'series', seriesItem.series_id.toString()) : false} />
                 </button>
               </div>
             </div>
@@ -241,6 +289,16 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
                     )}
                   </div>
                 )}
+
+                <div className="series-hero-actions">
+                  <button
+                    className={`favorite-button-hero ${activeProfile && isFavorite(activeProfile.id, 'series', selectedSeries.series_id.toString()) ? 'active' : ''}`}
+                    onClick={(e) => handleToggleFavorite(selectedSeries, e)}
+                  >
+                    <HeartIcon filled={activeProfile ? isFavorite(activeProfile.id, 'series', selectedSeries.series_id.toString()) : false} />
+                    {activeProfile && isFavorite(activeProfile.id, 'series', selectedSeries.series_id.toString()) ? 'Remove from Favorites' : 'Add to Favorites'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
