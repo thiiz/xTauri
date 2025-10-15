@@ -232,18 +232,7 @@ function App() {
     }
   }, [activeTab, activeProfile, listItems, focusedIndex, toggleGroupEnabled]);
 
-  // Video control handlers - Removed as they're now handled in ModernVideoPlayer
-  const handleToggleMute = useCallback(() => {
-    // Placeholder for keyboard navigation compatibility
-  }, []);
 
-  const handleToggleFullscreen = useCallback(() => {
-    // Placeholder for keyboard navigation compatibility
-  }, []);
-
-  const handleTogglePlayPause = useCallback(() => {
-    // Placeholder for keyboard navigation compatibility
-  }, []);
 
   // Memoized content selection handlers
   const handleContentSelect = useCallback((content: ContentItem | null) => {
@@ -342,20 +331,13 @@ function App() {
     setActiveTab,
     handleSelectGroup,
     handleToggleFavorite: toggleFavorite,
-    savedFilters: [],
-    onSaveFilter: async () => false,
-    onApplyFilter: () => { },
     clearSearch,
     clearGroupSearch: handleClearGroupSearch,
     clearAllFilters: handleClearAllFilters,
-    refreshCurrentChannelList: () => { },
     selectAllGroups: handleSelectAllGroups,
     unselectAllGroups: handleUnselectAllGroups,
     toggleGroupDisplayMode: handleToggleGroupDisplayMode,
     toggleCurrentGroupSelection: handleToggleCurrentGroupSelection,
-    toggleMute: handleToggleMute,
-    toggleFullscreen: handleToggleFullscreen,
-    togglePlayPause: handleTogglePlayPause,
   });
 
   // Show profile manager if no active profile

@@ -1,6 +1,6 @@
-import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { Channel } from "../components/ChannelList";
+import { create } from "zustand";
+import type { Channel } from "../types/channel";
 
 interface SearchState {
   // Search state

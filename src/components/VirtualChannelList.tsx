@@ -1,18 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { useChannelStore, useProfileStore, useUIStore, useXtreamContentStore } from "../stores";
+import type { Channel } from "../types/channel";
 import type { EnhancedEPGListing, XtreamChannel } from "../types/types";
 import CachedImage from "./CachedImage";
-
-export interface Channel {
-  name: string;
-  logo: string;
-  url: string;
-  group_title: string;
-  tvg_id: string;
-  resolution: string;
-  extra_info: string;
-}
 
 interface VirtualChannelListProps {
   channels?: Channel[];

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
-import type { Channel } from "../components/ChannelList";
+import type { Channel } from "../types/channel";
 
 export interface ChannelLoadingStatus {
   progress: number; // 0.0 to 1.0

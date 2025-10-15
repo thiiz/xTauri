@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import type { Channel } from '../components/ChannelList';
 import type { ContentItem } from '../components/VideoPlayerWrapper';
+import type { Channel } from '../types/channel';
 import type { XtreamChannel, XtreamMoviesListing, XtreamShow } from '../types/types';
 
 interface ContentMetadata {

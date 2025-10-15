@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import type { Channel } from "../components/ChannelList";
 import type { Tab } from "../components/NavigationSidebar";
-import type { SavedFilter } from "../stores";
+import type { Channel } from "../types/channel";
 
 interface UseKeyboardNavigationProps {
   activeTab: Tab;
@@ -19,33 +18,16 @@ interface UseKeyboardNavigationProps {
   setActiveTab: (tab: Tab) => void;
   handleSelectGroup: (group: string | null) => void;
   handleToggleFavorite: (channel: Channel) => void;
-  // Saved filters functionality
-  savedFilters: SavedFilter[];
-  onSaveFilter: (
-    slotNumber: number,
-    searchQuery: string,
-    selectedGroup: string | null,
-    name: string,
-  ) => Promise<boolean>;
-  onApplyFilter: (filter: SavedFilter) => void;
   // Search and filter actions
   clearSearch: () => void;
   clearGroupSearch: () => void;
   clearAllFilters: () => void;
-
-  // Channel list management
-  refreshCurrentChannelList: () => void;
 
   // Group management
   selectAllGroups: () => void;
   unselectAllGroups: () => void;
   toggleGroupDisplayMode: () => void;
   toggleCurrentGroupSelection: () => void;
-
-  // Video controls
-  toggleMute: () => void;
-  toggleFullscreen: () => void;
-  togglePlayPause: () => void;
 }
 
 export function useKeyboardNavigation({
@@ -64,20 +46,13 @@ export function useKeyboardNavigation({
   setActiveTab,
   handleSelectGroup,
   handleToggleFavorite,
-  savedFilters,
-  onSaveFilter,
-  onApplyFilter,
   clearSearch,
   clearGroupSearch,
   clearAllFilters,
-  refreshCurrentChannelList,
   selectAllGroups,
   unselectAllGroups,
   toggleGroupDisplayMode,
   toggleCurrentGroupSelection,
-  toggleMute,
-  toggleFullscreen,
-  togglePlayPause,
 }: UseKeyboardNavigationProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -103,42 +78,6 @@ export function useKeyboardNavigation({
         } else if (activeTab === "groups") {
           clearGroupSearch();
         }
-        return;
-      }
-
-      // Handle number keys (0-9) for applying saved filters
-      if (
-        e.key >= "0" &&
-        e.key <= "9" &&
-        !e.altKey &&
-        !e.ctrlKey &&
-        !e.shiftKey
-      ) {
-        const slotNumber = parseInt(e.key);
-        const filter = savedFilters.find((f) => f.slot_number === slotNumber);
-        if (filter) {
-          onApplyFilter(filter);
-          return;
-        }
-      }
-
-      // Handle Alt+number keys (Alt+0-9) for saving current filter
-      if (
-        e.altKey &&
-        e.key >= "0" &&
-        e.key <= "9" &&
-        !e.ctrlKey &&
-        !e.shiftKey
-      ) {
-        e.preventDefault();
-        const slotNumber = parseInt(e.key);
-
-        // Generate a name for the filter
-        const groupPart = selectedGroup ? `${selectedGroup}` : "All";
-        const searchPart = searchQuery ? `"${searchQuery}"` : "No search";
-        const filterName = `${groupPart} + ${searchPart}`;
-
-        onSaveFilter(slotNumber, searchQuery, selectedGroup, filterName);
         return;
       }
 
@@ -232,19 +171,7 @@ export function useKeyboardNavigation({
       }
 
       // Selection and interaction
-      else if (e.key === "l" || e.key === "ArrowRight") {
-        // Set selected channel if null, then play/pause video preview
-        if (
-          !selectedChannel &&
-          (activeTab === "channels" ||
-            activeTab === "favorites" ||
-            activeTab === "history") &&
-          listItems[focusedIndex]
-        ) {
-          setSelectedChannel(listItems[focusedIndex] as Channel);
-        }
-        togglePlayPause();
-      } else if (e.key === "Enter") {
+      else if (e.key === "l" || e.key === "ArrowRight" || e.key === "Enter") {
         if (
           activeTab === "channels" ||
           activeTab === "favorites" ||
@@ -464,12 +391,6 @@ export function useKeyboardNavigation({
         }
       }
 
-      // Channel list management
-      else if (e.key === "R") {
-        // Refresh current channel list
-        refreshCurrentChannelList();
-      }
-
       // Group management
       else if (e.key === "A") {
         // Select all groups
@@ -481,30 +402,11 @@ export function useKeyboardNavigation({
         // Toggle group display mode
         toggleGroupDisplayMode();
       } else if (e.key === " ") {
-        // Toggle current group selection or play/pause video preview
+        // Toggle current group selection
         e.preventDefault(); // Prevent page scroll
         if (activeTab === "groups") {
           toggleCurrentGroupSelection();
-        } else if (
-          activeTab === "channels" ||
-          activeTab === "favorites" ||
-          activeTab === "history"
-        ) {
-          // Set selected channel if null, then play/pause video preview
-          if (!selectedChannel && listItems[focusedIndex]) {
-            setSelectedChannel(listItems[focusedIndex] as Channel);
-          }
-          togglePlayPause();
         }
-      }
-
-      // Video controls
-      else if (e.key === "m") {
-        // Toggle mute
-        toggleMute();
-      } else if (e.key === "f") {
-        // Toggle fullscreen
-        toggleFullscreen();
       }
 
       // Clear selected channel
@@ -534,20 +436,17 @@ export function useKeyboardNavigation({
     focusedIndex,
     listItems,
     searchQuery,
-    savedFilters,
-    onSaveFilter,
-    onApplyFilter,
     clearSearch,
     clearGroupSearch,
     clearAllFilters,
-    refreshCurrentChannelList,
     selectAllGroups,
     unselectAllGroups,
     toggleGroupDisplayMode,
     toggleCurrentGroupSelection,
-    toggleMute,
-    toggleFullscreen,
-    togglePlayPause,
     setSelectedChannel,
+    setActiveTab,
+    setFocusedIndex,
+    handleSelectGroup,
+    handleToggleFavorite,
   ]);
 }

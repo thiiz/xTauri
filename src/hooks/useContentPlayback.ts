@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useState } from 'react';
-import type { Channel } from '../components/ChannelList';
 import { useProfileStore } from '../stores/profileStore';
+import type { Channel } from '../types/channel';
 import type { XtreamChannel, XtreamMoviesListing, XtreamShow } from '../types/types';
 
 export interface ContentItem {

@@ -2,11 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useChannelStore,
   useProfileStore,
-  useSettingsStore,
   useUIStore,
   useXtreamContentStore
 } from "../stores";
-import { type Channel } from "./ChannelList";
+import type { Channel } from "../types/channel";
 import { FavoritesView } from "./FavoritesView";
 import GroupList from "./GroupList";
 import SearchBar from "./SearchBar";
@@ -28,9 +27,6 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
   } = useChannelStore();
 
   const { activeTab } = useUIStore();
-
-  const { channelListName } = useSettingsStore();
-
   const { activeProfile } = useProfileStore();
 
   const {
@@ -43,16 +39,12 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
     fetchChannels: fetchXtreamChannels,
     fetchChannelCategories,
     searchChannels,
-    clearSearch: clearXtreamSearch,
-    favorites: xtreamFavorites
+    clearSearch: clearXtreamSearch
   } = useXtreamContentStore();
 
   // Local state for channel category filter
   const [selectedChannelCategoryId, setSelectedChannelCategoryId] = useState<string | null>(null);
   const [channelSearchQuery, setChannelSearchQuery] = useState("");
-
-  // selectedChannelListId was removed from channelStore
-  // Channel list name functionality is disabled for now
 
   // Load Xtream channels and categories when profile becomes active
   useEffect(() => {
@@ -93,11 +85,11 @@ export default function MainContent({ filteredChannels, onChannelSelect }: MainC
   const getTabTitle = () => {
     switch (activeTab) {
       case "channels":
-        return channelListName ? `Channels (${channelListName})` : "Channels";
+        return "Channels";
       case "favorites":
         return "Favorites";
       case "groups":
-        return channelListName ? `Groups (${channelListName})` : "Groups";
+        return "Groups";
       case "history":
         return "History";
       case "movies":
