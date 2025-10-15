@@ -21,32 +21,20 @@ pub mod xtream;
 #[cfg(test)]
 mod integration_tests;
 
+use content_cache::{
+    cancel_content_sync, clear_content_cache, filter_cached_xtream_movies,
+    get_cached_xtream_channels, get_cached_xtream_movies, get_cached_xtream_series,
+    get_cached_xtream_series_details, get_content_cache_stats, get_sync_progress,
+    get_sync_settings, get_sync_status, search_cached_xtream_channels, search_cached_xtream_movies,
+    search_cached_xtream_series, start_content_sync, update_sync_settings, ContentCacheState,
+};
 use error::{Result, XTauriError};
 use image_cache::ImageCache;
 use playlists::FetchState;
 use state::{ChannelCacheState, DbState, ImageCacheState};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
-use xtream::{XtreamState, ProfileManager, CredentialManager, ContentCache};
-use content_cache::{
-    ContentCacheState, 
-    get_cached_xtream_channels, 
-    search_cached_xtream_channels,
-    get_cached_xtream_movies,
-    search_cached_xtream_movies,
-    filter_cached_xtream_movies,
-    get_cached_xtream_series,
-    get_cached_xtream_series_details,
-    search_cached_xtream_series,
-    start_content_sync,
-    cancel_content_sync,
-    get_sync_progress,
-    get_sync_status,
-    get_sync_settings,
-    update_sync_settings,
-    clear_content_cache,
-    get_content_cache_stats,
-};
+use xtream::{ContentCache, CredentialManager, ProfileManager, XtreamState};
 
 // Import all the command functions from their respective modules
 use channels::*;
@@ -61,8 +49,9 @@ use settings::*;
 use xtream::commands::*;
 
 fn initialize_application() -> Result<(rusqlite::Connection, Vec<m3u_parser::Channel>)> {
-    let mut db_connection = database::initialize_database()
-        .map_err(|e| XTauriError::database_init(format!("Database initialization failed: {}", e)))?;
+    let mut db_connection = database::initialize_database().map_err(|e| {
+        XTauriError::database_init(format!("Database initialization failed: {}", e))
+    })?;
 
     // Run cleanup on startup to remove orphaned channel list files
     if let Err(e) = utils::cleanup_orphaned_channel_files(&db_connection) {
@@ -83,27 +72,31 @@ fn setup_image_cache(app: &tauri::App) -> Result<ImageCache> {
 
 fn setup_xtream_state(db_connection: Arc<Mutex<rusqlite::Connection>>) -> Result<XtreamState> {
     // Create credential manager
-    let credential_manager = Arc::new(
-        CredentialManager::new()
-            .map_err(|e| XTauriError::internal(format!("Failed to initialize credential manager: {}", e)))?
-    );
-    
+    let credential_manager = Arc::new(CredentialManager::new().map_err(|e| {
+        XTauriError::internal(format!("Failed to initialize credential manager: {}", e))
+    })?);
+
     // Create content cache using the same database connection
-    let content_cache = Arc::new(
-        ContentCache::new(Arc::clone(&db_connection), std::time::Duration::from_secs(3600))
-    );
-    
+    let content_cache = Arc::new(ContentCache::new(
+        Arc::clone(&db_connection),
+        std::time::Duration::from_secs(3600),
+    ));
+
     // Create profile manager using the same database connection
     let profile_manager = Arc::new(ProfileManager::new(db_connection, credential_manager));
-    
+
     Ok(XtreamState::new(profile_manager, content_cache))
 }
 
 fn setup_content_cache_state() -> Result<ContentCacheState> {
     // Create a new database connection for content cache
-    let db_connection = database::initialize_database()
-        .map_err(|e| XTauriError::database_init(format!("Failed to create content cache DB connection: {}", e)))?;
-    
+    let db_connection = database::initialize_database().map_err(|e| {
+        XTauriError::database_init(format!(
+            "Failed to create content cache DB connection: {}",
+            e
+        ))
+    })?;
+
     let db_arc = Arc::new(Mutex::new(db_connection));
     ContentCacheState::new(db_arc)
 }
@@ -120,14 +113,19 @@ pub fn run() {
     };
 
     let db_arc = Arc::new(Mutex::new(db_connection));
-    
+
     tauri::Builder::default()
         .manage(DbState {
             db: Mutex::new(
                 // Create a new connection for the DbState since we need to share the Arc
                 database::initialize_database()
-                    .map_err(|e| XTauriError::database_init(format!("Failed to create second DB connection: {}", e)))
-                    .unwrap()
+                    .map_err(|e| {
+                        XTauriError::database_init(format!(
+                            "Failed to create second DB connection: {}",
+                            e
+                        ))
+                    })
+                    .unwrap(),
             ),
         })
         .manage(ChannelCacheState {
@@ -145,7 +143,7 @@ pub fn run() {
             app.manage(ImageCacheState {
                 cache: Arc::new(image_cache),
             });
-            
+
             // Initialize Xtream state
             let xtream_state = match setup_xtream_state(db_arc) {
                 Ok(state) => state,
@@ -155,7 +153,7 @@ pub fn run() {
                 }
             };
             app.manage(xtream_state);
-            
+
             // Initialize Content Cache state
             let content_cache_state = match setup_content_cache_state() {
                 Ok(state) => state,
@@ -165,7 +163,7 @@ pub fn run() {
                 }
             };
             app.manage(content_cache_state);
-            
+
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -307,7 +305,7 @@ pub fn run() {
             get_sync_settings,
             update_sync_settings,
             clear_content_cache,
-            get_cache_stats,
+            get_content_cache_stats,
             // Xtream history commands
             add_xtream_history,
             update_xtream_history_position,

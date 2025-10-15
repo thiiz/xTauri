@@ -33,6 +33,8 @@ export interface SyncSettings {
   sync_channels: boolean;
   sync_movies: boolean;
   sync_series: boolean;
+  wifi_only: boolean;
+  notify_on_complete: boolean;
 }
 
 export interface ContentCacheStats {
@@ -257,28 +259,24 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchChannels: async (profileId: string, categoryId?: string) => {
     set({ isLoadingChannels: true, channelsError: null });
     try {
-      // Try to get from cache first
+      // Only get from cache - no automatic API fallback
       const channels = await invoke<XtreamChannel[]>('get_cached_xtream_channels', {
         profileId,
         categoryId: categoryId || null,
         limit: null,
         offset: null
       });
-      set({
-        channels,
-        isLoadingChannels: false,
-        totalItems: channels.length,
-        hasNextPage: false,
-        currentPage: 1
-      });
-    } catch (error) {
-      // If cache fails, fall back to direct API call
-      console.warn('Cache fetch failed, falling back to API:', error);
-      try {
-        const channels = await invoke<XtreamChannel[]>('get_xtream_channels', {
-          profileId,
-          categoryId: categoryId || null
+
+      // If cache returns empty array, treat it as cache_empty
+      if (channels.length === 0 && !categoryId) {
+        set({
+          channelsError: 'cache_empty',
+          isLoadingChannels: false,
+          channels: [],
+          totalItems: 0,
+          hasNextPage: false
         });
+      } else {
         set({
           channels,
           isLoadingChannels: false,
@@ -286,15 +284,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
           hasNextPage: false,
           currentPage: 1
         });
-      } catch (apiError) {
-        set({
-          channelsError: apiError as string,
-          isLoadingChannels: false,
-          channels: [],
-          totalItems: 0,
-          hasNextPage: false
-        });
       }
+    } catch (error) {
+      // Cache is empty - user needs to sync manually
+      set({
+        channelsError: 'cache_empty',
+        isLoadingChannels: false,
+        channels: [],
+        totalItems: 0,
+        hasNextPage: false
+      });
     }
   },
 
@@ -316,7 +315,7 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchMovies: async (profileId: string, categoryId?: string) => {
     set({ isLoadingMovies: true, moviesError: null });
     try {
-      // Try to get from cache first
+      // Only get from cache - no automatic API fallback
       const movies = await invoke<XtreamMoviesListing[]>('get_cached_xtream_movies', {
         profileId,
         categoryId: categoryId || null,
@@ -326,21 +325,17 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         limit: null,
         offset: null
       });
-      set({
-        movies,
-        isLoadingMovies: false,
-        totalItems: movies.length,
-        hasNextPage: false,
-        currentPage: 1
-      });
-    } catch (error) {
-      // If cache fails, fall back to direct API call
-      console.warn('Cache fetch failed, falling back to API:', error);
-      try {
-        const movies = await invoke<XtreamMoviesListing[]>('get_xtream_movies', {
-          profileId,
-          categoryId: categoryId || null
+
+      // If cache returns empty array, treat it as cache_empty
+      if (movies.length === 0 && !categoryId) {
+        set({
+          moviesError: 'cache_empty',
+          isLoadingMovies: false,
+          movies: [],
+          totalItems: 0,
+          hasNextPage: false
         });
+      } else {
         set({
           movies,
           isLoadingMovies: false,
@@ -348,15 +343,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
           hasNextPage: false,
           currentPage: 1
         });
-      } catch (apiError) {
-        set({
-          moviesError: apiError as string,
-          isLoadingMovies: false,
-          movies: [],
-          totalItems: 0,
-          hasNextPage: false
-        });
       }
+    } catch (error) {
+      // Cache is empty - user needs to sync manually
+      set({
+        moviesError: 'cache_empty',
+        isLoadingMovies: false,
+        movies: [],
+        totalItems: 0,
+        hasNextPage: false
+      });
     }
   },
 
@@ -390,7 +386,7 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   fetchSeries: async (profileId: string, categoryId?: string) => {
     set({ isLoadingSeries: true, seriesError: null });
     try {
-      // Try to get from cache first
+      // Only get from cache - no automatic API fallback
       const series = await invoke<XtreamShowListing[]>('get_cached_xtream_series', {
         profileId,
         categoryId: categoryId || null,
@@ -400,21 +396,19 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         limit: null,
         offset: null
       });
-      set({
-        series,
-        isLoadingSeries: false,
-        totalItems: series.length,
-        hasNextPage: false,
-        currentPage: 1
-      });
-    } catch (error) {
-      // If cache fails, fall back to direct API call
-      console.warn('Cache fetch failed, falling back to API:', error);
-      try {
-        const series = await invoke<XtreamShowListing[]>('get_xtream_series', {
-          profileId,
-          categoryId: categoryId || null
+      console.log('✅ fetchSeries SUCCESS - Got series from cache:', series.length);
+
+      // If cache returns empty array, treat it as cache_empty
+      if (series.length === 0 && !categoryId) {
+        console.log('⚠️ Cache returned empty array - treating as cache_empty');
+        set({
+          seriesError: 'cache_empty',
+          isLoadingSeries: false,
+          series: [],
+          totalItems: 0,
+          hasNextPage: false
         });
+      } else {
         set({
           series,
           isLoadingSeries: false,
@@ -422,15 +416,16 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
           hasNextPage: false,
           currentPage: 1
         });
-      } catch (apiError) {
-        set({
-          seriesError: apiError as string,
-          isLoadingSeries: false,
-          series: [],
-          totalItems: 0,
-          hasNextPage: false
-        });
       }
+    } catch (error) {
+      // Cache is empty - user needs to sync manually
+      set({
+        seriesError: 'cache_empty',
+        isLoadingSeries: false,
+        series: [],
+        totalItems: 0,
+        hasNextPage: false
+      });
     }
   },
 
@@ -626,7 +621,7 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchChannels: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      // Use cached search with fuzzy matching
+      // Only use cached search - no automatic fallback
       const searchResults = await invoke<XtreamChannel[]>('search_cached_xtream_channels', {
         profileId,
         query: searchQuery,
@@ -642,31 +637,12 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      // Fall back to client-side search if cache search fails
-      console.warn('Cached search failed, falling back to client-side:', error);
-      try {
-        const state = get();
-        const channelsToSearch = state.channels.length > 0 ? state.channels :
-          await invoke<XtreamChannel[]>('get_xtream_channels', { profileId, categoryId: null });
-
-        const searchResults = await invoke<XtreamChannel[]>('search_xtream_channels', {
-          channels: channelsToSearch,
-          searchQuery
-        });
-
-        set({
-          filteredChannels: searchResults,
-          isSearching: false,
-          totalItems: searchResults.length,
-          hasNextPage: false
-        });
-      } catch (fallbackError) {
-        set({
-          searchError: fallbackError as string,
-          isSearching: false,
-          filteredChannels: []
-        });
-      }
+      // Cache is empty - search not available
+      set({
+        searchError: 'cache_empty',
+        isSearching: false,
+        filteredChannels: []
+      });
     }
   },
 
@@ -704,7 +680,7 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchMovies: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      // Use cached search with fuzzy matching
+      // Only use cached search - no automatic fallback
       const searchResults = await invoke<XtreamMoviesListing[]>('search_cached_xtream_movies', {
         profileId,
         query: searchQuery,
@@ -723,31 +699,12 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      // Fall back to client-side search if cache search fails
-      console.warn('Cached search failed, falling back to client-side:', error);
-      try {
-        const state = get();
-        const moviesToSearch = state.movies.length > 0 ? state.movies :
-          await invoke<XtreamMoviesListing[]>('get_xtream_movies', { profileId, categoryId: null });
-
-        const searchResults = await invoke<XtreamMoviesListing[]>('search_xtream_movies', {
-          movies: moviesToSearch,
-          searchQuery
-        });
-
-        set({
-          filteredMovies: searchResults,
-          isSearching: false,
-          totalItems: searchResults.length,
-          hasNextPage: false
-        });
-      } catch (fallbackError) {
-        set({
-          searchError: fallbackError as string,
-          isSearching: false,
-          filteredMovies: []
-        });
-      }
+      // Cache is empty - search not available
+      set({
+        searchError: 'cache_empty',
+        isSearching: false,
+        filteredMovies: []
+      });
     }
   },
 
@@ -785,7 +742,7 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
   searchSeries: async (profileId: string, searchQuery: string) => {
     set({ isSearching: true, searchError: null, searchQuery });
     try {
-      // Use cached search with fuzzy matching
+      // Only use cached search - no automatic fallback
       const searchResults = await invoke<XtreamShowListing[]>('search_cached_xtream_series', {
         profileId,
         query: searchQuery,
@@ -804,31 +761,12 @@ export const useXtreamContentStore = create<XtreamContentState>((set, get) => ({
         hasNextPage: false
       });
     } catch (error) {
-      // Fall back to client-side search if cache search fails
-      console.warn('Cached search failed, falling back to client-side:', error);
-      try {
-        const state = get();
-        const seriesToSearch = state.series.length > 0 ? state.series :
-          await invoke<XtreamShowListing[]>('get_xtream_series', { profileId, categoryId: null });
-
-        const searchResults = await invoke<XtreamShowListing[]>('search_xtream_series', {
-          series: seriesToSearch,
-          searchQuery
-        });
-
-        set({
-          filteredSeries: searchResults,
-          isSearching: false,
-          totalItems: searchResults.length,
-          hasNextPage: false
-        });
-      } catch (fallbackError) {
-        set({
-          searchError: fallbackError as string,
-          isSearching: false,
-          filteredSeries: []
-        });
-      }
+      // Cache is empty - search not available
+      set({
+        searchError: 'cache_empty',
+        isSearching: false,
+        filteredSeries: []
+      });
     }
   },
 
