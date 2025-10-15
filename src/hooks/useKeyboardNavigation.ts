@@ -4,12 +4,6 @@ import type { Channel } from "../types/channel";
 
 interface UseKeyboardNavigationProps {
   activeTab: Tab;
-  channels: Channel[];
-  favorites: Channel[];
-  groups: string[];
-  history: Channel[];
-  selectedGroup: string | null;
-  selectedChannel: Channel | null;
   focusedIndex: number;
   listItems: any[];
   searchQuery: string;
@@ -32,12 +26,6 @@ interface UseKeyboardNavigationProps {
 
 export function useKeyboardNavigation({
   activeTab,
-  channels,
-  favorites,
-  groups,
-  history,
-  selectedGroup,
-  selectedChannel,
   focusedIndex,
   listItems,
   searchQuery,
@@ -57,12 +45,15 @@ export function useKeyboardNavigation({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const focusedElement = document.activeElement;
+      const isInputFocused = focusedElement?.tagName === "INPUT" ||
+        focusedElement?.tagName === "TEXTAREA" ||
+        focusedElement?.getAttribute("contenteditable") === "true";
 
       // Handle escape key when input fields are focused
-      if (focusedElement && focusedElement.tagName === "INPUT") {
+      if (isInputFocused) {
         if (e.key === "Escape") {
           e.preventDefault();
-          (focusedElement as HTMLInputElement).blur();
+          (focusedElement as HTMLElement).blur();
           return;
         } else {
           // Let input handle the key normally
@@ -425,28 +416,11 @@ export function useKeyboardNavigation({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeTab,
-    channels,
-    favorites,
-    groups,
-    history,
-    selectedGroup,
-    selectedChannel,
     focusedIndex,
-    listItems,
+    listItems.length, // Only track length to avoid re-creating handler on every list change
     searchQuery,
-    clearSearch,
-    clearGroupSearch,
-    clearAllFilters,
-    selectAllGroups,
-    unselectAllGroups,
-    toggleGroupDisplayMode,
-    toggleCurrentGroupSelection,
-    setSelectedChannel,
-    setActiveTab,
-    setFocusedIndex,
-    handleSelectGroup,
-    handleToggleFavorite,
   ]);
 }

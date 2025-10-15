@@ -78,7 +78,7 @@ function App() {
   const [selectedXtreamContent, setSelectedXtreamContent] = useState<ContentItem | null>(null);
   const [nextEpisode, setNextEpisode] = useState<{ episode: XtreamEpisode; series: XtreamShow } | null>(null);
 
-  // Fetch all settings on app load
+  // Fetch all settings on app load - memoized to run only once
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -97,7 +97,8 @@ function App() {
     };
 
     loadSettings();
-  }, [fetchEnablePreview, fetchAutoplay, fetchMuteOnStart, fetchShowControls, fetchCacheDuration, fetchVolume, fetchIsMuted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Load Xtream content when active profile changes
   useEffect(() => {
@@ -118,7 +119,8 @@ function App() {
     };
 
     loadXtreamContent();
-  }, [activeProfile, fetchChannelCategories, fetchXtreamChannels, setChannels]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfile?.id]); // Only depend on profile ID to avoid unnecessary reloads
 
   // Sync Xtream channels to channel store - Memoized to prevent unnecessary conversions
   const convertedChannels = useMemo(() => {
@@ -236,16 +238,10 @@ function App() {
 
   // Memoized content selection handlers
   const handleContentSelect = useCallback((content: ContentItem | null) => {
-    setSelectedXtreamContent(prevContent => {
-      // Avoid state update if content hasn't changed
-      if (prevContent === content) return prevContent;
-
-      if (content) {
-        setSelectedChannel(null);
-        return content;
-      }
-      return null;
-    });
+    setSelectedXtreamContent(content);
+    if (content) {
+      setSelectedChannel(null);
+    }
   }, [setSelectedChannel]);
 
   const handleMovieSelect = useCallback((movie: XtreamMoviesListing) => {
@@ -317,12 +313,6 @@ function App() {
 
   useKeyboardNavigation({
     activeTab,
-    channels,
-    favorites,
-    groups,
-    history,
-    selectedGroup,
-    selectedChannel,
     focusedIndex,
     listItems,
     searchQuery,

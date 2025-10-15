@@ -113,40 +113,27 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
 
   const handleToggleFavorite = useCallback(async (movie: XtreamMoviesListing, e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('handleToggleFavorite called', { movie, activeProfile });
 
-    if (!activeProfile) {
-      console.warn('No active profile');
-      return;
-    }
+    if (!activeProfile) return;
 
     const movieId = movie.stream_id.toString();
     const isCurrentlyFavorite = isFavorite(activeProfile.id, 'movie', movieId);
 
-    console.log('Toggle favorite:', { movieId, isCurrentlyFavorite, profileId: activeProfile.id });
-
     try {
       if (isCurrentlyFavorite) {
-        console.log('Removing from favorites...');
         await removeFromFavoritesByContent(activeProfile.id, 'movie', movieId);
-        console.log('Removed from favorites successfully');
       } else {
-        console.log('Adding to favorites...', { profileId: activeProfile.id, movieId, movie });
         await addToFavorites(activeProfile.id, 'movie', movieId, movie);
-        console.log('Added to favorites successfully');
       }
     } catch (error) {
       const errorMessage = error as string;
-      console.error('Failed to toggle favorite:', error);
 
       // If the error is "already in favorites", try to remove it instead
       if (errorMessage.includes('already in favorites')) {
-        console.log('Item already in favorites, trying to remove...');
         try {
           await removeFromFavoritesByContent(activeProfile.id, 'movie', movieId);
-          console.log('Removed from favorites successfully');
         } catch (removeError) {
-          console.error('Failed to remove favorite:', removeError);
+          // Silent fail - user will see the UI state
         }
       }
     }
@@ -161,76 +148,81 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
 
     return (
       <div className="virtual-movie-row" role="list">
-        {rowMovies.map((movie) => (
-          <article
-            key={movie.stream_id}
-            className={`virtual-movie-card ${selectedMovie?.stream_id === movie.stream_id ? 'selected' : ''}`}
-            onClick={() => handleMovieClick(movie)}
-            role="listitem"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleMovieClick(movie);
-              }
-            }}
-            aria-label={`${movie.name}, ${formatYear(movie.year)}, Rating ${formatRating(movie.rating)}`}
-          >
-            <div className="movie-poster-container">
-              <CachedImage
-                src={movie.stream_icon}
-                alt={`${movie.name} poster`}
-                className="movie-poster"
-                lazy={true}
-                rootMargin="200px"
-              />
-              <div className="movie-overlay" aria-hidden="true">
-                <button
-                  className="play-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMoviePlay(movie);
-                  }}
-                  aria-label={`Play ${movie.name}`}
-                  title={`Play ${movie.name}`}
-                >
-                  <span aria-hidden="true">▶</span>
-                </button>
-                <button
-                  className="details-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShowDetails(movie);
-                  }}
-                  aria-label={`Show details for ${movie.name}`}
-                  title={`Show details for ${movie.name}`}
-                >
-                  <span aria-hidden="true">ℹ</span>
-                </button>
-                <button
-                  className={`favorite-button ${activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? 'active' : ''}`}
-                  onClick={(e) => handleToggleFavorite(movie, e)}
-                  aria-label={activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? `Remove ${movie.name} from favorites` : `Add ${movie.name} to favorites`}
-                  title={activeProfile && isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) ? "Remove from favorites" : "Add to favorites"}
-                >
-                  <HeartIcon filled={activeProfile ? isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) : false} />
-                </button>
-              </div>
-            </div>
+        {rowMovies.map((movie) => {
+          const isSelected = selectedMovie?.stream_id === movie.stream_id;
+          const isFav = activeProfile ? isFavorite(activeProfile.id, 'movie', movie.stream_id.toString()) : false;
 
-            <div className="movie-info">
-              <h3 className="movie-title">{movie.name}</h3>
-              <div className="movie-meta">
-                {movie.year && <span className="movie-year">{formatYear(movie.year)}</span>}
-                {movie.rating > 0 && <span className="movie-rating">★ {formatRating(movie.rating)}</span>}
-                {movie.episode_run_time && <span className="movie-runtime">{formatRuntime(movie.episode_run_time)}</span>}
+          return (
+            <article
+              key={movie.stream_id}
+              className={`virtual-movie-card ${isSelected ? 'selected' : ''}`}
+              onClick={() => handleMovieClick(movie)}
+              role="listitem"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleMovieClick(movie);
+                }
+              }}
+              aria-label={`${movie.name}, ${formatYear(movie.year)}, Rating ${formatRating(movie.rating)}`}
+            >
+              <div className="movie-poster-container">
+                <CachedImage
+                  src={movie.stream_icon}
+                  alt={`${movie.name} poster`}
+                  className="movie-poster"
+                  lazy={true}
+                  rootMargin="200px"
+                />
+                <div className="movie-overlay" aria-hidden="true">
+                  <button
+                    className="play-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoviePlay(movie);
+                    }}
+                    aria-label={`Play ${movie.name}`}
+                    title={`Play ${movie.name}`}
+                  >
+                    <span aria-hidden="true">▶</span>
+                  </button>
+                  <button
+                    className="details-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShowDetails(movie);
+                    }}
+                    aria-label={`Show details for ${movie.name}`}
+                    title={`Show details for ${movie.name}`}
+                  >
+                    <span aria-hidden="true">ℹ</span>
+                  </button>
+                  <button
+                    className={`favorite-button ${isFav ? 'active' : ''}`}
+                    onClick={(e) => handleToggleFavorite(movie, e)}
+                    aria-label={isFav ? `Remove ${movie.name} from favorites` : `Add ${movie.name} to favorites`}
+                    title={isFav ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <HeartIcon filled={isFav} />
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+
+              <div className="movie-info">
+                <h3 className="movie-title">{movie.name}</h3>
+                <div className="movie-meta">
+                  {movie.year && <span className="movie-year">{formatYear(movie.year)}</span>}
+                  {movie.rating > 0 && <span className="movie-rating">★ {formatRating(movie.rating)}</span>}
+                  {movie.episode_run_time && <span className="movie-runtime">{formatRuntime(movie.episode_run_time)}</span>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
     );
-  }, [displayMovies, selectedMovie, handleMovieClick, handleMoviePlay, handleShowDetails]);
+  }, [displayMovies, selectedMovie, activeProfile, handleMovieClick, handleMoviePlay, handleShowDetails, handleToggleFavorite, isFavorite]);
 
   const totalRows = Math.ceil(displayMovies.length / 6);
 

@@ -35,7 +35,6 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
   // Normaliza os detalhes da série para garantir estrutura consistente
   const normalizedSeriesDetails = useNormalizedSeriesDetails(seriesDetails);
 
-  console.log("seriesDetails: ", seriesDetails)
   const {
     series,
     seriesCategories,

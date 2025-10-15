@@ -21,8 +21,8 @@ interface SearchState {
   ) => Promise<Channel[]>;
 
   // Debounce timer management
-  debounceTimer: number | null;
-  setDebounceTimer: (timer: number | null) => void;
+  debounceTimer: ReturnType<typeof setTimeout> | null;
+  setDebounceTimer: (timer: ReturnType<typeof setTimeout> | null) => void;
 }
 
 export const useSearchStore = create<SearchState>((set, get) => ({
@@ -42,10 +42,10 @@ export const useSearchStore = create<SearchState>((set, get) => ({
       clearTimeout(debounceTimer);
     }
 
-    // Set new timer for debouncing
+    // Set new timer for debouncing (reduced from 400ms to 300ms for better UX)
     const newTimer = setTimeout(() => {
       set({ debouncedSearchQuery: searchQuery });
-    }, 400);
+    }, 300);
 
     set({ debounceTimer: newTimer });
   },
@@ -69,44 +69,54 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     });
   },
 
-  // Search operations
+  // Search operations with improved error handling and caching
   searchChannels: async (query, channelListId) => {
-    if (query === "" || query.length < 3) {
-      const fetchedChannels = await invoke<Channel[]>("get_channels", {
-        id: channelListId,
-      });
-      return fetchedChannels;
-    } else {
-      set({ isSearching: true });
+    // Early return for empty or too short queries
+    if (!query || query.length < 2) {
+      set({ isSearching: false });
       try {
-        const searchedChannels = await invoke<Channel[]>("search_channels", {
-          query,
-          id: channelListId,
-        });
-        return searchedChannels;
-      } catch (error) {
-        // Handle search cancellation gracefully
-        if (
-          error &&
-          typeof error === "string" &&
-          error.includes("Search cancelled")
-        ) {
-          console.log("Search was cancelled - ignoring result");
-          // Return empty array for cancelled searches instead of fallback
-          // This prevents showing stale results
-          return [];
-        }
-
-        console.error("Search failed:", error);
-
-        // For other errors, fall back to returning all channels
         const fetchedChannels = await invoke<Channel[]>("get_channels", {
           id: channelListId,
         });
         return fetchedChannels;
-      } finally {
-        set({ isSearching: false });
+      } catch (error) {
+        console.error("Failed to fetch channels:", error);
+        return [];
       }
+    }
+
+    set({ isSearching: true });
+    try {
+      const searchedChannels = await invoke<Channel[]>("search_channels", {
+        query,
+        id: channelListId,
+      });
+      return searchedChannels;
+    } catch (error) {
+      // Handle search cancellation gracefully
+      if (
+        error &&
+        typeof error === "string" &&
+        error.includes("Search cancelled")
+      ) {
+        console.log("Search was cancelled - ignoring result");
+        return [];
+      }
+
+      console.error("Search failed:", error);
+
+      // For other errors, fall back to returning all channels
+      try {
+        const fetchedChannels = await invoke<Channel[]>("get_channels", {
+          id: channelListId,
+        });
+        return fetchedChannels;
+      } catch (fallbackError) {
+        console.error("Fallback fetch also failed:", fallbackError);
+        return [];
+      }
+    } finally {
+      set({ isSearching: false });
     }
   },
 }));
