@@ -656,6 +656,17 @@ const ModernVideoPlayer = forwardRef<HTMLVideoElement, ModernVideoPlayerProps>(
     // Keyboard shortcuts
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
+        // Check if an input field is focused
+        const focusedElement = document.activeElement;
+        const isInputFocused = focusedElement?.tagName === "INPUT" ||
+          focusedElement?.tagName === "TEXTAREA" ||
+          focusedElement?.getAttribute("contenteditable") === "true";
+
+        // Don't handle player shortcuts if input is focused
+        if (isInputFocused) {
+          return;
+        }
+
         if (!ref || typeof ref === 'function') return;
         const video = ref.current;
         if (!video) return;
