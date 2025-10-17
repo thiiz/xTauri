@@ -17,11 +17,7 @@ export const THROTTLE_DELAY = {
   MOUSE_MOVE: 50,
 } as const;
 
-export const CACHE_DURATION = {
-  SHORT: 5 * 60 * 1000, // 5 minutes
-  MEDIUM: 30 * 60 * 1000, // 30 minutes
-  LONG: 24 * 60 * 60 * 1000, // 24 hours
-} as const;
+
 
 // Pagination
 export const PAGINATION = {
@@ -49,13 +45,7 @@ export const VIDEO_PLAYER = {
   BUFFER_AHEAD: 30, // seconds
 } as const;
 
-// Image Loading
-export const IMAGE = {
-  LAZY_LOAD_ROOT_MARGIN: '200px',
-  PLACEHOLDER_BLUR: 10,
-  MAX_RETRIES: 3,
-  RETRY_DELAY: 1000, // ms
-} as const;
+
 
 // API
 export const API = {
@@ -144,25 +134,15 @@ export const FEATURES = {
   ENABLE_DOWNLOADS: false, // Future feature
 } as const;
 
-// Analytics Events (if analytics is added in the future)
-export const ANALYTICS_EVENTS = {
-  PAGE_VIEW: 'page_view',
-  CONTENT_PLAY: 'content_play',
-  CONTENT_PAUSE: 'content_pause',
-  SEARCH: 'search',
-  FAVORITE_TOGGLE: 'favorite_toggle',
-  PROFILE_SWITCH: 'profile_switch',
-} as const;
+
 
 // Export all as a single object for convenience
 export const CONSTANTS = {
   DEBOUNCE_DELAY,
   THROTTLE_DELAY,
-  CACHE_DURATION,
   PAGINATION,
   SEARCH,
   VIDEO_PLAYER,
-  IMAGE,
   API,
   STORAGE_KEYS,
   UI,
@@ -172,7 +152,6 @@ export const CONSTANTS = {
   SUCCESS_MESSAGES,
   VALIDATION,
   FEATURES,
-  ANALYTICS_EVENTS,
 } as const;
 
 export default CONSTANTS;

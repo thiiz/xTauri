@@ -20,13 +20,7 @@
       }
     ],
     "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": [
-          "$APPDATA/image_cache/**"
-        ]
-      }
+      "csp": null
     }
   },
   "bundle": {

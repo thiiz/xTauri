@@ -6,8 +6,6 @@ mod filters;
 pub mod fuzzy_search;
 mod groups;
 mod history;
-pub mod image_cache;
-mod image_cache_api;
 pub mod m3u_parser;
 mod m3u_parser_helpers;
 mod playlists;
@@ -28,9 +26,8 @@ use content_cache::{
     search_cached_xtream_series, start_content_sync, update_sync_settings, ContentCacheState,
 };
 use error::{Result, XTauriError};
-use image_cache::ImageCache;
 use playlists::FetchState;
-use state::{ChannelCacheState, DbState, ImageCacheState};
+use state::{ChannelCacheState, DbState};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use xtream::{ContentCache, CredentialManager, ProfileManager, XtreamState};
@@ -40,7 +37,6 @@ use channels::*;
 use filters::*;
 use groups::*;
 use history::*;
-use image_cache_api::*;
 use playlists::*;
 use search::*;
 use settings::*;
@@ -61,11 +57,6 @@ fn initialize_application() -> Result<(rusqlite::Connection, Vec<m3u_parser::Cha
         .map_err(|e| XTauriError::database_init(format!("Failed to populate channels: {}", e)))?;
 
     Ok((db_connection, channels))
-}
-
-fn setup_image_cache(app: &tauri::App) -> Result<ImageCache> {
-    ImageCache::new(app.handle())
-        .map_err(|e| XTauriError::internal(format!("Failed to initialize image cache: {}", e)))
 }
 
 fn setup_xtream_state(db_connection: Arc<Mutex<rusqlite::Connection>>) -> Result<XtreamState> {
@@ -131,17 +122,6 @@ pub fn run() {
         })
         .manage(FetchState::new())
         .setup(|app| {
-            let image_cache = match setup_image_cache(app) {
-                Ok(cache) => cache,
-                Err(e) => {
-                    eprintln!("Failed to initialize image cache: {}", e);
-                    return Err(Box::new(e));
-                }
-            };
-            app.manage(ImageCacheState {
-                cache: Arc::new(image_cache),
-            });
-
             // Initialize Xtream state
             let xtream_state = match setup_xtream_state(db_arc) {
                 Ok(state) => state,
@@ -210,16 +190,6 @@ pub fn run() {
             validate_and_add_channel_list_async,
             get_playlist_fetch_status,
             get_all_playlist_fetch_status,
-            // Image cache commands (sync)
-            get_cached_image,
-            clear_image_cache,
-            get_image_cache_size,
-            // Async image cache commands
-            get_cached_image_async,
-            clear_image_cache_async,
-            get_image_cache_size_async,
-            get_image_download_status,
-            preload_images,
             // Group commands
             get_enabled_groups,
             update_group_selection,

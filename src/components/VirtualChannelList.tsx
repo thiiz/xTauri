@@ -3,7 +3,6 @@ import { Virtuoso } from "react-virtuoso";
 import { useChannelStore, useProfileStore, useUIStore, useXtreamContentStore } from "../stores";
 import type { Channel } from "../types/channel";
 import type { EnhancedEPGListing, XtreamChannel } from "../types/types";
-import CachedImage from "./CachedImage";
 
 interface VirtualChannelListProps {
   channels?: Channel[];
@@ -227,10 +226,11 @@ export default function VirtualChannelList({ channels, useXtreamData = false, on
       >
         <div className="channel-content">
           <div className="channel-logo-container">
-            <CachedImage
+            <img
               src={isXtreamChannel ? xtreamChannel!.stream_icon : (channel as Channel).logo}
               alt={channel.name}
               className="channel-logo"
+              loading="lazy"
             />
             {isXtreamChannel && xtreamChannel!.tv_archive === 1 && (
               <div className="channel-status">

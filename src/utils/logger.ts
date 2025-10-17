@@ -74,10 +74,7 @@ class Logger {
   }
 }
 
-// Export singleton instances for different modules
+// Export singleton instance
 export const logger = new Logger();
-export const storeLogger = new Logger({ prefix: 'Store' });
-export const hookLogger = new Logger({ prefix: 'Hook' });
-export const apiLogger = new Logger({ prefix: 'API' });
 
 export default logger;

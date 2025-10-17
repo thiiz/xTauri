@@ -1,6 +1,5 @@
 import { GroupDisplayMode, useChannelStore, useUIStore } from "../stores";
 import type { XtreamMoviesListing, XtreamShow } from "../types/types";
-import CachedImage from "./CachedImage";
 import { SignalIcon, StarIcon } from "./Icons";
 import type { ContentItem } from "./VideoPlayerWrapper";
 
@@ -38,10 +37,11 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
       <aside className="channel-details" role="complementary" aria-label="Channel details">
         <div className="channel-details-content">
           <div className="channel-main-info">
-            <CachedImage
+            <img
               src={selectedChannel.logo}
               alt={`${selectedChannel.name} logo`}
               className="channel-details-logo"
+              loading="lazy"
             />
             <div className="channel-meta">
               <div className="channel-title-row">
@@ -149,10 +149,11 @@ export default function ContentDetails({ selectedXtreamContent }: ContentDetails
       <div className="channel-details">
         <div className="channel-details-content">
           <div className="channel-main-info">
-            <CachedImage
+            <img
               src={getContentImage()}
               alt={getContentTitle()}
               className="channel-details-logo"
+              loading="lazy"
             />
             <div className="channel-meta">
               <div className="channel-title-row">

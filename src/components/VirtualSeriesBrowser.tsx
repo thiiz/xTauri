@@ -5,7 +5,6 @@ import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamEpisode, XtreamSeason, XtreamShow, XtreamShowListing } from "../types/types";
 import { formatEpisodeRuntime, formatRating, formatYear } from "../utils/formatters";
-import CachedImage from "./CachedImage";
 import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
 import { SkeletonEpisodeList, SkeletonMovieGrid } from "./SkeletonLoader";
@@ -193,12 +192,11 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
             aria-label={`${seriesItem.name}, ${formatYear(seriesItem.year)}, Rating ${formatRating(seriesItem.rating)}`}
           >
             <div className="series-poster-container">
-              <CachedImage
+              <img
                 src={seriesItem.cover}
                 alt={`${seriesItem.name} poster`}
                 className="series-poster"
-                lazy={true}
-                rootMargin="200px"
+                loading="lazy"
               />
               <div className="series-overlay" aria-hidden="true">
                 <button
@@ -246,10 +244,11 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
         {/* Hero Section with Background */}
         <div className="series-hero-section">
           <div className="series-hero-backdrop">
-            <CachedImage
+            <img
               src={selectedSeries.cover}
               alt=""
               className="series-backdrop-image"
+              loading="lazy"
             />
             <div className="series-hero-overlay"></div>
           </div>
@@ -264,7 +263,7 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
 
             <div className="series-hero-info">
               <div className="series-poster-compact">
-                <CachedImage src={selectedSeries.cover} alt={selectedSeries.name} className="series-poster-image" />
+                <img src={selectedSeries.cover} alt={selectedSeries.name} className="series-poster-image" loading="lazy" />
               </div>
 
               <div className="series-hero-details">
@@ -353,12 +352,11 @@ export default function VirtualSeriesBrowser({ onEpisodePlay, onContentSelect }:
                   return (
                     <div className="episode-card" onClick={() => handleEpisodePlay(episode)}>
                       <div className="episode-card-thumbnail">
-                        <CachedImage
+                        <img
                           src={episode.info.movie_image || selectedSeries.cover}
                           alt={episode.title}
                           className="episode-card-image"
-                          lazy={true}
-                          rootMargin="100px"
+                          loading="lazy"
                         />
                         <div className="episode-card-overlay">
                           <button

@@ -4,7 +4,6 @@ import { useProfileStore } from "../stores/profileStore";
 import { useXtreamContentStore } from "../stores/xtreamContentStore";
 import { XtreamMovie, XtreamMoviesListing } from "../types/types";
 import { formatRating, formatRuntime, formatYear } from "../utils/formatters";
-import CachedImage from "./CachedImage";
 import EmptyState from "./EmptyState";
 import SearchBar from "./SearchBar";
 import { SkeletonMovieGrid } from "./SkeletonLoader";
@@ -179,12 +178,11 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
               aria-label={`${movie.name}, ${formatYear(movie.year)}, Rating ${formatRating(movie.rating)}`}
             >
               <div className="movie-poster-container">
-                <CachedImage
+                <img
                   src={movie.stream_icon}
                   alt={`${movie.name} poster`}
                   className="movie-poster"
-                  lazy={true}
-                  rootMargin="200px"
+                  loading="lazy"
                 />
                 <div className="movie-overlay" aria-hidden="true">
                   <button
@@ -354,10 +352,11 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
             {/* Hero Section with Background */}
             <div className="movie-hero-section">
               <div className="movie-hero-backdrop">
-                <CachedImage
+                <img
                   src={selectedMovie.stream_icon}
                   alt=""
                   className="movie-backdrop-image"
+                  loading="lazy"
                 />
                 <div className="movie-hero-overlay"></div>
               </div>
@@ -371,7 +370,7 @@ export default function VirtualMovieGrid({ onMovieSelect, onMoviePlay, onContent
 
                 <div className="movie-hero-info">
                   <div className="movie-poster-compact">
-                    <CachedImage src={selectedMovie.stream_icon} alt={selectedMovie.name} className="movie-poster-image" />
+                    <img src={selectedMovie.stream_icon} alt={selectedMovie.name} className="movie-poster-image" loading="lazy" />
                   </div>
 
                   <div className="movie-hero-details">
