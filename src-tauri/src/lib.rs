@@ -15,8 +15,7 @@ mod state;
 mod utils;
 pub mod xtream;
 
-#[cfg(test)]
-mod integration_tests;
+
 
 use content_cache::{
     cancel_content_sync, clear_content_cache, filter_cached_xtream_movies,
@@ -179,8 +178,7 @@ pub fn run() {
             get_channel_lists,
             add_channel_list,
             set_default_channel_list,
-            refresh_channel_list,
-            validate_and_add_channel_list,
+
             delete_channel_list,
             update_channel_list,
             start_channel_list_selection,

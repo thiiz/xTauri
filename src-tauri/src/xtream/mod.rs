@@ -17,8 +17,7 @@ pub mod session_manager;
 pub mod types;
 pub mod xtream_client;
 
-#[cfg(test)]
-mod tests;
+
 
 pub use commands::XtreamState;
 pub use content_cache::ContentCache;

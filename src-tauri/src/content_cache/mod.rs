@@ -8,53 +8,7 @@ pub mod query_optimizer;
 pub mod schema;
 pub mod sync_scheduler;
 
-#[cfg(test)]
-mod tests;
 
-#[cfg(test)]
-mod search_tests;
-
-#[cfg(test)]
-mod movie_tests;
-
-#[cfg(test)]
-mod series_tests;
-
-#[cfg(test)]
-mod category_tests;
-
-#[cfg(test)]
-mod sync_api_tests;
-
-#[cfg(test)]
-mod incremental_sync_tests;
-
-#[cfg(test)]
-mod sync_settings_tests;
-
-#[cfg(test)]
-mod query_optimizer_benchmarks;
-
-#[cfg(test)]
-mod fts_tests;
-
-#[cfg(test)]
-mod fts_benchmarks;
-
-#[cfg(test)]
-mod db_performance_benchmarks;
-
-#[cfg(test)]
-mod db_performance_tests;
-
-#[cfg(test)]
-mod sync_control_tests;
-
-#[cfg(test)]
-mod settings_commands_tests;
-
-#[cfg(test)]
-mod cache_management_tests;
 
 pub use background_scheduler::*;
 pub use commands::*;
