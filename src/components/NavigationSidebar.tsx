@@ -7,7 +7,7 @@ import {
   SeriesIcon,
   SettingsIcon,
   TvIcon,
-  UsersIcon
+  UsersIcon,
 } from "./Icons";
 import ProfileSelector from "./ProfileSelector";
 
@@ -59,11 +59,9 @@ export default function NavigationSidebar() {
     <div className="nav-sidebar">
       <div className="nav-sidebar-content">
         <div className="nav-header">
-      
-        </div>
-
-        <div className="profile-selector-wrapper">
-          <ProfileSelector />
+          <div className="profile-selector-wrapper">
+            <ProfileSelector />
+          </div>
         </div>
 
         <nav className="nav-menu">
@@ -93,4 +91,3 @@ export default function NavigationSidebar() {
 }
 
 export type { Tab };
-
