@@ -59,10 +59,7 @@ export default function NavigationSidebar() {
     <div className="nav-sidebar">
       <div className="nav-sidebar-content">
         <div className="nav-header">
-          <div className="app-brand">
-            <div className="app-brand-icon">📺</div>
-            <h1 className="app-brand-title">xTauri</h1>
-          </div>
+      
         </div>
 
         <div className="profile-selector-wrapper">
