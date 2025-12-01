@@ -1,20 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CreateProfileRequest, UpdateProfileRequest, XtreamProfile } from '../stores/profileStore';
 import { useProfileStore } from '../stores/profileStore';
-
-interface ProfileFormData {
-  name: string;
-  url: string;
-  username: string;
-  password: string;
-}
-
-const initialFormData: ProfileFormData = {
-  name: '',
-  url: '',
-  username: '',
-  password: ''
-};
 
 export default function ProfileSelector() {
   const {
@@ -22,27 +7,14 @@ export default function ProfileSelector() {
     activeProfile,
     isAuthenticating,
     isSwitching,
-    isSaving,
-    isDeleting,
-    isValidating,
     authError,
-    error,
-    validationError,
     switchProfile,
     fetchProfiles,
-    createProfile,
-    updateProfile,
-    deleteProfile,
+    clearActiveProfile,
     clearAuthError,
-    clearError,
-    clearValidationError
   } = useProfileStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<XtreamProfile | null>(null);
-  const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,8 +46,12 @@ export default function ProfileSelector() {
       setIsDropdownOpen(false);
     } catch (error) {
       console.error('Failed to switch profile:', error);
-      // Error is handled by the store
     }
+  };
+
+  const handleLogout = () => {
+    clearActiveProfile();
+    setIsDropdownOpen(false);
   };
 
   const toggleDropdown = () => {
@@ -83,105 +59,6 @@ export default function ProfileSelector() {
     if (authError) {
       clearAuthError();
     }
-  };
-
-  const handleOpenForm = (profile?: XtreamProfile) => {
-    if (profile) {
-      setEditingProfile(profile);
-      setFormData({
-        name: profile.name,
-        url: profile.url,
-        username: profile.username,
-        password: ''
-      });
-    } else {
-      setEditingProfile(null);
-      setFormData(initialFormData);
-    }
-    setIsFormOpen(true);
-    setIsDropdownOpen(false);
-    clearError();
-    clearValidationError();
-  };
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingProfile(null);
-    setFormData(initialFormData);
-    clearError();
-    clearValidationError();
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (validationError) {
-      clearValidationError();
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name.trim() || !formData.url.trim() || !formData.username.trim()) {
-      return;
-    }
-
-    try {
-      if (editingProfile) {
-        const updateData: UpdateProfileRequest = {
-          name: formData.name.trim(),
-          url: formData.url.trim(),
-          username: formData.username.trim()
-        };
-
-        if (formData.password.trim()) {
-          updateData.password = formData.password.trim();
-        }
-
-        await updateProfile(editingProfile.id, updateData);
-      } else {
-        if (!formData.password.trim()) {
-          return;
-        }
-
-        const createData: CreateProfileRequest = {
-          name: formData.name.trim(),
-          url: formData.url.trim(),
-          username: formData.username.trim(),
-          password: formData.password.trim()
-        };
-
-        await createProfile(createData);
-      }
-
-      handleCloseForm();
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
-  };
-
-  const handleDelete = async (profileId: string) => {
-    try {
-      await deleteProfile(profileId);
-      setShowDeleteConfirm(null);
-    } catch (error) {
-      console.error('Failed to delete profile:', error);
-    }
-  };
-
-  const handleEditClick = (e: React.MouseEvent, profile: XtreamProfile) => {
-    e.stopPropagation();
-    handleOpenForm(profile);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent, profileId: string) => {
-    e.stopPropagation();
-    setShowDeleteConfirm(profileId);
-    setIsDropdownOpen(false);
   };
 
   const getStatusIcon = () => {
@@ -278,16 +155,13 @@ export default function ProfileSelector() {
       {isDropdownOpen && (
         <div className="profile-selector-dropdown">
           <div className="dropdown-header">
-            <span>Select Profile</span>
+            <span>Switch Profile</span>
           </div>
 
           <div className="dropdown-content">
             {profiles.length === 0 ? (
               <div className="dropdown-empty">
                 <p>No profiles available</p>
-                <p className="dropdown-empty-hint">
-                  Click "Add Profile" below to get started
-                </p>
               </div>
             ) : (
               profiles.map(profile => (
@@ -324,25 +198,6 @@ export default function ProfileSelector() {
                       <span className="dropdown-item-check">✓</span>
                     )}
                   </button>
-
-                  <div className="dropdown-item-actions">
-                    <button
-                      className="dropdown-action-btn edit"
-                      onClick={(e) => handleEditClick(e, profile)}
-                      title="Edit profile"
-                      disabled={isSaving || isDeleting}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      className="dropdown-action-btn delete"
-                      onClick={(e) => handleDeleteClick(e, profile.id)}
-                      title="Delete profile"
-                      disabled={isSaving || isDeleting}
-                    >
-                      🗑
-                    </button>
-                  </div>
                 </div>
               ))
             )}
@@ -350,167 +205,11 @@ export default function ProfileSelector() {
 
           <div className="dropdown-footer">
             <button
-              className="dropdown-footer-button"
-              onClick={() => handleOpenForm()}
-              disabled={isSaving}
+              className="dropdown-footer-button logout"
+              onClick={handleLogout}
             >
-              + Add Profile
+              Manage Profiles
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Profile Form Modal */}
-      {isFormOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editingProfile ? 'Edit Profile' : 'Add New Profile'}</h3>
-              <button
-                className="modal-close"
-                onClick={handleCloseForm}
-                disabled={isSaving}
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="profile-form">
-              {validationError && (
-                <div className="error-message">
-                  <span>{validationError}</span>
-                </div>
-              )}
-
-              {error && (
-                <div className="error-message">
-                  <span>{error}</span>
-                  <button onClick={clearError} className="error-close">×</button>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label htmlFor="name">Profile Name *</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter a name for this profile"
-                  required
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="url">Server URL *</label>
-                <input
-                  type="url"
-                  id="url"
-                  name="url"
-                  value={formData.url}
-                  onChange={handleInputChange}
-                  placeholder="http://your-server.com:80"
-                  required
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="username">Username *</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  placeholder="Your username"
-                  required
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password">
-                  Password {editingProfile ? '(leave blank to keep current)' : '*'}
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Your password"
-                  required={!editingProfile}
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={handleCloseForm}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isSaving || isValidating}
-                >
-                  {isSaving || isValidating ? (
-                    <>
-                      <span className="loading-spinner-small"></span>
-                      {isValidating ? 'Validating...' : 'Saving...'}
-                    </>
-                  ) : (
-                    editingProfile ? 'Update Profile' : 'Create Profile'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-small">
-            <div className="modal-header">
-              <h3>Confirm Delete</h3>
-            </div>
-            <div className="modal-body">
-              <p>Are you sure you want to delete this profile?</p>
-              <p><strong>{profiles.find(p => p.id === showDeleteConfirm)?.name}</strong></p>
-              <p>This action cannot be undone.</p>
-            </div>
-            <div className="form-actions">
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowDeleteConfirm(null)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={() => handleDelete(showDeleteConfirm)}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <span className="loading-spinner-small"></span>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete Profile'
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}
